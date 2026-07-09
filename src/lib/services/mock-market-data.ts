@@ -103,24 +103,14 @@ const MOCK_NEWS: Record<string, NewsItem[]> = {
   ],
 };
 
-export async function fetchMockFinancials(symbol: string): Promise<FinancialSnapshot> {
-  return (
-    MOCK_FINANCIALS[symbol] ?? {
-      revenueGrowthYoY: 0,
-      profitMargin: 0,
-      operatingMargin: 0,
-      returnOnEquity: 0,
-      debtToEquity: 1,
-      currentRatio: 1,
-      freeCashFlowPositive: false,
-      peRatio: 0,
-      forwardPe: 0,
-      pegRatio: 0,
-      priceToSales: 0,
-      eps: 0,
-      beta: 1,
-    }
-  );
+export function hasMockFinancials(symbol: string): boolean {
+  return Boolean(MOCK_FINANCIALS[symbol]);
+}
+
+export async function fetchMockFinancials(
+  symbol: string
+): Promise<FinancialSnapshot> {
+  return MOCK_FINANCIALS[symbol] ?? {};
 }
 
 export async function fetchMockNews(symbol: string): Promise<NewsItem[]> {
@@ -129,7 +119,7 @@ export async function fetchMockNews(symbol: string): Promise<NewsItem[]> {
       {
         headline: "No major mock news found",
         summary:
-          "This backend is currently using mock data. Real finance and news APIs will be connected later.",
+          "This backend is currently using mock data. Real company news will be connected when a news API key is available.",
         source: "Mock Research Feed",
         sentiment: "NEUTRAL",
       },

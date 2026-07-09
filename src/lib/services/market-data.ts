@@ -3,7 +3,10 @@ import {
   FinancialSnapshot,
 } from "@/lib/types/research";
 import { fetchAlphaVantageOverview } from "@/lib/services/alpha-vantage";
-import { fetchMockFinancials } from "@/lib/services/mock-market-data";
+import {
+  fetchMockFinancials,
+  hasMockFinancials,
+} from "@/lib/services/mock-market-data";
 
 type MarketDataResult = {
   companyPatch?: Partial<CompanyProfile>;
@@ -21,10 +24,16 @@ function mergeFinancials(
     profitMargin: real.profitMargin ?? fallback.profitMargin,
     operatingMargin: real.operatingMargin ?? fallback.operatingMargin,
     returnOnEquity: real.returnOnEquity ?? fallback.returnOnEquity,
+
     debtToEquity: real.debtToEquity ?? fallback.debtToEquity,
     currentRatio: real.currentRatio ?? fallback.currentRatio,
+
+    // Important:
+    // Do not convert missing FCF data into false.
+    // false means "verified negative", undefined means "unknown".
     freeCashFlowPositive:
       real.freeCashFlowPositive ?? fallback.freeCashFlowPositive,
+
     peRatio: real.peRatio ?? fallback.peRatio,
     forwardPe: real.forwardPe ?? fallback.forwardPe,
     pegRatio: real.pegRatio ?? fallback.pegRatio,
@@ -34,6 +43,22 @@ function mergeFinancials(
   };
 }
 
+function buildMissingDataWarning(financials: FinancialSnapshot): string | undefined {
+  const missingFields: string[] = [];
+
+  if (financials.debtToEquity === undefined) missingFields.push("debtToEquity");
+  if (financials.currentRatio === undefined) missingFields.push("currentRatio");
+  if (financials.freeCashFlowPositive === undefined) {
+    missingFields.push("freeCashFlowPositive");
+  }
+
+  if (missingFields.length === 0) return undefined;
+
+  return `Some financial fields were unavailable from the selected data source: ${missingFields.join(
+    ", "
+  )}. The agent treats these as unknown, not negative.`;
+}
+
 export async function fetchCompanyFinancials(
   company: CompanyProfile
 ): Promise<MarketDataResult> {
@@ -41,11 +66,19 @@ export async function fetchCompanyFinancials(
 
   try {
     const overview = await fetchAlphaVantageOverview(company.symbol);
+    const financials = mergeFinancials(overview.financials, fallbackFinancials);
+
+    const missingDataWarning = buildMissingDataWarning(financials);
 
     return {
       companyPatch: overview.company,
-      financials: mergeFinancials(overview.financials, fallbackFinancials),
+      financials,
       source: "ALPHA_VANTAGE",
+      warning:
+        missingDataWarning ??
+        (!hasMockFinancials(company.symbol)
+          ? undefined
+          : "Some unavailable fields were supplemented with curated demo fallback data."),
     };
   } catch (error) {
     return {
