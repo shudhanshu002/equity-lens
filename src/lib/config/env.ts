@@ -1,5 +1,6 @@
 export const env = {
-  openAiApiKey: process.env.OPENAI_API_KEY,
+  googleApiKey: process.env.GOOGLE_API_KEY,
+  googleModel: process.env.GOOGLE_MODEL ?? "gemini-1.5-flash",
   alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
   finnhubApiKey: process.env.FINNHUB_API_KEY,
 };
