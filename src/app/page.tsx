@@ -1,65 +1,343 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import {
+  compareCompanies,
+  ComparisonApiResponse,
+  researchCompany,
+} from "@/lib/api-client";
+import { InvestmentResearchReport } from "@/lib/types/research";
+import {
+  AppTab,
+  FloatingNavbar,
+} from "@/components/research/floating-navbar";
+import { LandingPage } from "@/components/research/landing-page";
+import { SearchPanel } from "@/components/research/search-panel";
+import { WorkspaceOverview } from "@/components/research/workspace-overview";
+import { EmptyState } from "@/components/research/empty-state";
+import { LoadingAgent } from "@/components/research/loading-agent";
+import { SystemStatus } from "@/components/research/system-status";
+import { ReportView } from "@/components/research/report-view";
+import { CompareView } from "@/components/research/compare-view";
+import { AppFooter } from "@/components/research/app-footer";
+import { MethodologySection } from "@/components/research/methodology-section";
+import { SubmissionSection } from "@/components/research/submission-section";
+import { HistoryCenter } from "@/components/research/history-center";
+import { RecentHistory } from "@/components/research/recent-history";
+import { CommandPalette } from "@/components/research/command-palette";
+
+type SearchMode = "research" | "compare";
+
+
 
 export default function Home() {
+
+  async function runDemoResearch() {
+  setCompany("Nvidia");
+  setError("");
+  setLoading(true);
+  setComparison(undefined);
+
+  try {
+    const response = await researchCompany("Nvidia");
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error ?? "Failed to run research.");
+    }
+
+    setReport(response.data);
+    setActiveTab("research");
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Something went wrong.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function runDemoCompare() {
+  setCompanies("Nvidia, Tesla, Netflix");
+  setError("");
+  setLoading(true);
+  setReport(null);
+
+  try {
+    const response = await compareCompanies(["Nvidia", "Tesla", "Netflix"]);
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error ?? "Failed to compare companies.");
+    }
+
+    setComparison(response.data);
+    setActiveTab("compare");
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Something went wrong.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+  const [activeTab, setActiveTab] = useState<AppTab>("home");
+  const [mode, setMode] = useState<SearchMode>("research");
+
+  const [company, setCompany] = useState("Apple");
+  const [companies, setCompanies] = useState("Nvidia, Tesla, Netflix");
+
+  const [report, setReport] = useState<InvestmentResearchReport | null>(null);
+  const [comparison, setComparison] =
+    useState<ComparisonApiResponse["data"]>(undefined);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function changeTab(tab: AppTab) {
+    setActiveTab(tab);
+
+    if (tab === "research") {
+      setMode("research");
+    }
+
+    if (tab === "compare") {
+      setMode("compare");
+    }
+  }
+
+  async function handleResearch() {
+    setError("");
+    setLoading(true);
+    setComparison(undefined);
+
+    try {
+      const response = await researchCompany(company);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? "Failed to run research.");
+      }
+
+      setReport(response.data);
+      setActiveTab("research");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCompare() {
+    setError("");
+    setLoading(true);
+    setReport(null);
+
+    try {
+      const parsed = companies
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      const response = await compareCompanies(parsed);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? "Failed to compare companies.");
+      }
+
+      setComparison(response.data);
+      setActiveTab("compare");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-950 transition-colors dark:bg-[#020617] dark:text-white">
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute left-[-10%] top-[-10%] h-[420px] w-[420px] rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
+        <div className="absolute right-[-10%] top-[20%] h-[420px] w-[420px] rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-400/10" />
+        <div className="absolute bottom-[-20%] left-[30%] h-[420px] w-[420px] rounded-full bg-emerald-400/10 blur-3xl dark:bg-emerald-400/5" />
+      </div>
+
+      <FloatingNavbar activeTab={activeTab} onTabChange={changeTab} />
+
+      <CommandPalette
+        onTabChange={changeTab}
+        onPickResearch={(selectedCompany) => {
+          setCompany(selectedCompany);
+          setMode("research");
+        }}
+        onPickCompare={(selectedCompanies) => {
+          setCompanies(selectedCompanies);
+          setMode("compare");
+        }}
+      />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-5 pb-8 md:px-10">
+        {activeTab === "home" && (
+          <LandingPage
+            onTabChange={changeTab}
+            onPickResearch={(selectedCompany) => {
+              setCompany(selectedCompany);
+              setMode("research");
+            }}
+            onPickCompare={(selectedCompanies) => {
+              setCompanies(selectedCompanies);
+              setMode("compare");
+            }}
+          />
+        )}
+
+        {activeTab === "research" && (
+          <section className="pt-32">
+            <PageIntro
+              eyebrow="Research workspace"
+              title="Single Company Research"
+              description="Run the LangGraph agent on one company and generate an explainable investment memo."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+            <WorkspaceOverview variant="research" />
+
+            <SearchPanel
+              variant="research"
+              company={company}
+              setCompany={setCompany}
+              companies={companies}
+              setCompanies={setCompanies}
+              loading={loading}
+              error={error}
+              onResearch={handleResearch}
+              onCompare={handleCompare}
+            />
+
+            <SystemStatus />
+
+            {loading && <LoadingAgent variant="research" />}
+
+            {!loading && !report && (
+              <EmptyState
+                variant="research"
+                onPrimaryAction={runDemoResearch}
+              />
+            )}
+
+            {!loading && report && <ReportView report={report} />}
+
+            <RecentHistory
+              currentReport={report}
+              currentComparison={undefined}
+              onOpenReport={(savedReport) => {
+                setComparison(undefined);
+                setReport(savedReport);
+                setActiveTab("research");
+              }}
+              onOpenComparison={(savedComparison) => {
+                setReport(null);
+                setComparison(savedComparison);
+                setActiveTab("compare");
+              }}
+            />
+          </section>
+        )}
+
+        {activeTab === "compare" && (
+          <section className="pt-32">
+            <PageIntro
+              eyebrow="Comparison workspace"
+              title="Compare Companies"
+              description="Compare 2–3 companies side-by-side and generate a ranked AI investment comparison."
+            />
+
+            <WorkspaceOverview variant="compare" />
+
+            <SearchPanel
+              variant="compare"
+              company={company}
+              setCompany={setCompany}
+              companies={companies}
+              setCompanies={setCompanies}
+              loading={loading}
+              error={error}
+              onResearch={handleResearch}
+              onCompare={handleCompare}
+            />
+
+            <SystemStatus />
+
+            {loading && <LoadingAgent variant="compare" />}
+
+            {!loading && !comparison && (
+              <EmptyState
+                variant="compare"
+                onPrimaryAction={runDemoCompare}
+              />
+            )}
+
+            {!loading && comparison && (
+              <CompareView comparison={comparison} />
+            )}
+
+            <RecentHistory
+              currentReport={null}
+              currentComparison={comparison}
+              onOpenReport={(savedReport) => {
+                setComparison(undefined);
+                setReport(savedReport);
+                setActiveTab("research");
+              }}
+              onOpenComparison={(savedComparison) => {
+                setReport(null);
+                setComparison(savedComparison);
+                setActiveTab("compare");
+              }}
+            />
+          </section>
+        )}
+
+        {activeTab === "history" && (
+          <HistoryCenter
+            onOpenReport={(savedReport) => {
+              setComparison(undefined);
+              setReport(savedReport);
+              setActiveTab("research");
+            }}
+            onOpenComparison={(savedComparison) => {
+              setReport(null);
+              setComparison(savedComparison);
+              setActiveTab("compare");
+            }}
+          />
+        )}
+
+        {activeTab === "home" && <MethodologySection />}
+
+        {activeTab === "home" && <SubmissionSection />}
+
+        <AppFooter />
+      </div>
+    </main>
+  );
+}
+
+function PageIntro({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mb-8">
+      <p className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-cyan-500">
+        {eyebrow}
+      </p>
+
+      <h1 className="text-4xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">
+        {title}
+      </h1>
+
+      <p className="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">
+        {description}
+      </p>
     </div>
   );
 }
