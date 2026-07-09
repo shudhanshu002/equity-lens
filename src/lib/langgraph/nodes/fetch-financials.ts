@@ -1,5 +1,5 @@
 import { ResearchState } from "@/lib/langgraph/state";
-import { fetchMockFinancials } from "@/lib/services/mock-market-data";
+import { fetchCompanyFinancials } from "@/lib/services/market-data";
 
 type ResearchStateType = typeof ResearchState.State;
 
@@ -10,10 +10,14 @@ export async function fetchFinancialsNode(
     throw new Error("Company must be resolved before fetching financials.");
   }
 
-  const financials = await fetchMockFinancials(state.company.symbol);
+  const result = await fetchCompanyFinancials(state.company);
 
   return {
     status: "FETCHING_FINANCIALS",
-    financials,
+    company: {
+      ...state.company,
+      ...result.companyPatch,
+    },
+    financials: result.financials,
   };
 }
