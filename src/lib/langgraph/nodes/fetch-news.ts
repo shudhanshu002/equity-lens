@@ -15,5 +15,22 @@ export async function fetchNewsNode(
   return {
     status: "FETCHING_NEWS",
     news: result.news,
+    metadata: {
+      agentVersion: "1.0.0",
+      newsDataSource: result.source,
+      warnings: result.warning ? [result.warning] : [],
+      trace: [
+        {
+          step: "fetch_news",
+          status: result.source === "FINNHUB" ? "SUCCESS" : "FALLBACK",
+          provider: result.source,
+          message:
+            result.source === "FINNHUB"
+              ? `Fetched recent company news for ${state.company.symbol} from Finnhub.`
+              : `Used mock news for ${state.company.symbol}.`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    },
   };
 }

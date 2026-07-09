@@ -19,5 +19,22 @@ export async function fetchFinancialsNode(
       ...result.companyPatch,
     },
     financials: result.financials,
+    metadata: {
+      agentVersion: "1.0.0",
+      financialDataSource: result.source,
+      warnings: result.warning ? [result.warning] : [],
+      trace: [
+        {
+          step: "fetch_financials",
+          status: result.source === "ALPHA_VANTAGE" ? "SUCCESS" : "FALLBACK",
+          provider: result.source,
+          message:
+            result.source === "ALPHA_VANTAGE"
+              ? `Fetched financial metrics for ${state.company.symbol} from Alpha Vantage.`
+              : `Used mock financial data for ${state.company.symbol}.`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    },
   };
 }

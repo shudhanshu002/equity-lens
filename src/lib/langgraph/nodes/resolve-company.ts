@@ -11,5 +11,18 @@ export async function resolveCompanyNode(
   return {
     status: "RESOLVING_COMPANY",
     company,
+    metadata: {
+      agentVersion: "1.0.0",
+      warnings: [],
+      trace: [
+        {
+          step: "resolve_company",
+          status: "SUCCESS",
+          provider: "LOCAL_RESOLVER",
+          message: `Resolved "${state.input}" to ${company.symbol}.`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    },
   };
 }

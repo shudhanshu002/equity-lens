@@ -40,6 +40,11 @@ export async function runInvestmentResearch(input: string) {
     bearCase: [],
     risks: [],
     whatWouldChangeDecision: [],
+    metadata: {
+      agentVersion: "1.0.0",
+      warnings: [],
+      trace: [],
+    },
   });
 
   return result;

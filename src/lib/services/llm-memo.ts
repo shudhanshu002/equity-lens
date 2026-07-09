@@ -4,6 +4,7 @@ import {
   CompanyProfile,
   FinancialSnapshot,
   InvestmentDecision,
+  MemoProvider,
   NewsItem,
   ScoreBreakdown,
 } from "@/lib/types/research";
@@ -12,29 +13,19 @@ const AnalystMemoSchema = z.object({
   thesis: z
     .string()
     .describe("One concise paragraph explaining the investment decision."),
-  bullCase: z
-    .array(z.string())
-    .min(3)
-    .max(5)
-    .describe("Three to five bullish arguments."),
-  bearCase: z
-    .array(z.string())
-    .min(3)
-    .max(5)
-    .describe("Three to five bearish arguments."),
-  risks: z
-    .array(z.string())
-    .min(3)
-    .max(6)
-    .describe("Three to six key investment risks."),
-  whatWouldChangeDecision: z
-    .array(z.string())
-    .min(3)
-    .max(6)
-    .describe("Three to six factors that could change the decision."),
+  bullCase: z.array(z.string()).min(3).max(5),
+  bearCase: z.array(z.string()).min(3).max(5),
+  risks: z.array(z.string()).min(3).max(6),
+  whatWouldChangeDecision: z.array(z.string()).min(3).max(6),
 });
 
 export type AnalystMemo = z.infer<typeof AnalystMemoSchema>;
+
+export type AnalystMemoResult = {
+  memo: AnalystMemo;
+  provider: MemoProvider;
+  warning?: string;
+};
 
 type GenerateAnalystMemoInput = {
   company: CompanyProfile;
@@ -146,14 +137,18 @@ function compactNews(news: NewsItem[]) {
 
 export async function generateAnalystMemo(
   input: GenerateAnalystMemoInput
-): Promise<AnalystMemo> {
+): Promise<AnalystMemoResult> {
   if (!process.env.GOOGLE_API_KEY) {
-    return buildFallbackMemo(input);
+    return {
+      memo: buildFallbackMemo(input),
+      provider: "FALLBACK",
+      warning: "Using fallback memo because GOOGLE_API_KEY is missing.",
+    };
   }
 
   try {
     const model = new ChatGoogleGenerativeAI({
-      model: process.env.GOOGLE_MODEL ?? "gemini-1.5-flash",
+      model: process.env.GOOGLE_MODEL ?? "gemini-2.5-flash",
       temperature: 0.2,
       maxRetries: 2,
       apiKey: process.env.GOOGLE_API_KEY,
@@ -193,9 +188,18 @@ export async function generateAnalystMemo(
       },
     ]);
 
-    return AnalystMemoSchema.parse(memo);
+    return {
+      memo: AnalystMemoSchema.parse(memo),
+      provider: "GEMINI",
+    };
   } catch (error) {
-    console.error("Gemini memo generation failed:", error);
-    return buildFallbackMemo(input);
+    return {
+      memo: buildFallbackMemo(input),
+      provider: "FALLBACK",
+      warning:
+        error instanceof Error
+          ? `Using fallback memo because Gemini failed: ${error.message}`
+          : "Using fallback memo because Gemini failed.",
+    };
   }
 }

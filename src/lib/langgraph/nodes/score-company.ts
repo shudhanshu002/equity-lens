@@ -21,5 +21,18 @@ export async function scoreCompanyNode(
     score,
     decision,
     confidence: Math.min(95, Math.max(55, score.total + 10)),
+    metadata: {
+      agentVersion: "1.0.0",
+      warnings: [],
+      trace: [
+        {
+          step: "score_company",
+          status: "SUCCESS",
+          provider: "RULE_BASED_SCORING_MODEL",
+          message: `Generated score ${score.total} and decision ${decision}.`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    },
   };
 }

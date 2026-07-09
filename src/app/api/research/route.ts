@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         bearCase: report.bearCase,
         risks: report.risks,
         whatWouldChangeDecision: report.whatWouldChangeDecision,
+        metadata: report.metadata,
         generatedAt: new Date().toISOString(),
       },
     });

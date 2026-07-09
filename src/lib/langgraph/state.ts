@@ -4,6 +4,7 @@ import {
   FinancialSnapshot,
   InvestmentDecision,
   NewsItem,
+  ResearchMetadata,
   ResearchStatus,
   ScoreBreakdown,
 } from "@/lib/types/research";
@@ -48,5 +49,24 @@ export const ResearchState = Annotation.Root({
   whatWouldChangeDecision: Annotation<string[]>({
     reducer: (_current, update) => update,
     default: () => [],
+  }),
+
+  metadata: Annotation<ResearchMetadata>({
+    reducer: (current, update) => {
+      return {
+        agentVersion: update.agentVersion ?? current.agentVersion,
+        financialDataSource:
+          update.financialDataSource ?? current.financialDataSource,
+        newsDataSource: update.newsDataSource ?? current.newsDataSource,
+        memoProvider: update.memoProvider ?? current.memoProvider,
+        warnings: [...current.warnings, ...update.warnings],
+        trace: [...current.trace, ...update.trace],
+      };
+    },
+    default: () => ({
+      agentVersion: "1.0.0",
+      warnings: [],
+      trace: [],
+    }),
   }),
 });

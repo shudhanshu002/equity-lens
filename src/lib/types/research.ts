@@ -55,6 +55,27 @@ export type ScoreBreakdown = {
   total: number;
 };
 
+export type FinancialDataSource = "ALPHA_VANTAGE" | "MOCK";
+export type NewsDataSource = "FINNHUB" | "MOCK";
+export type MemoProvider = "GEMINI" | "FALLBACK";
+
+export type AgentTraceStep = {
+  step: string;
+  status: "SUCCESS" | "FALLBACK" | "FAILED";
+  provider?: string;
+  message: string;
+  timestamp: string;
+};
+
+export type ResearchMetadata = {
+  financialDataSource?: FinancialDataSource;
+  newsDataSource?: NewsDataSource;
+  memoProvider?: MemoProvider;
+  agentVersion: string;
+  warnings: string[];
+  trace: AgentTraceStep[];
+};
+
 export type InvestmentResearchReport = {
   company: CompanyProfile;
   financials: FinancialSnapshot;
@@ -67,5 +88,6 @@ export type InvestmentResearchReport = {
   bearCase: string[];
   risks: string[];
   whatWouldChangeDecision: string[];
+  metadata: ResearchMetadata;
   generatedAt: string;
 };
