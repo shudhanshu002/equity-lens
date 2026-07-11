@@ -17,6 +17,11 @@ enum OtpPurpose {
   LOGIN_VERIFICATION
 }
 
+enum HistoryItemType {
+  RESEARCH
+  COMPARISON
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -33,6 +38,10 @@ model User {
   accounts      Account[]
   sessions      Session[]
   otpTokens     OtpToken[]
+  settings      UserSettings?
+  watchlistItems UserWatchlistItem[]
+  historyItems  UserHistoryItem[]
+  exportItems    UserExportItem[]
 
   @@map("users")
 }
@@ -94,4 +103,92 @@ model OtpToken {
   @@index([email])
   @@index([purpose])
   @@map("otp_tokens")
+}
+
+model UserSettings {
+  id                      String   @id @default(cuid())
+
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  theme                   String   @default("dark")
+  llmProvider             String   @default("Gemini")
+  llmModel                String   @default("gemini-2.5-flash")
+  financialProvider       String   @default("Alpha Vantage")
+  riskProfile             String   @default("Balanced")
+
+  enableMockFallbacks     Boolean  @default(true)
+  enableAgentVisualization Boolean @default(true)
+  enableLocalHistory      Boolean  @default(true)
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+model UserWatchlistItem {
+  id        String   @id @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  company   String
+  symbol    String?
+  thesis    String?
+  status    String   @default("Research")
+  score     Int      @default(50)
+  risk      String   @default("Medium")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_watchlist_items")
+}
+
+model UserHistoryItem {
+  id        String          @id @default(cuid())
+
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      HistoryItemType
+  title     String
+  subtitle  String?
+  symbol    String?
+  decision  String?
+  score     Int?
+
+  payload   Json
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@map("user_history_items")
+}
+
+model UserExportItem {
+  id          String   @id @default(cuid())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  type        String
+  format      String
+  description String?
+
+  payload     Json?
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([format])
+  @@map("user_export_items")
 }
