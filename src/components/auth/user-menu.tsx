@@ -2,25 +2,27 @@
 
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
-    ArrowRight,
     ChevronDown,
+    History,
     Loader2,
     LogIn,
     LogOut,
     Settings,
     ShieldCheck,
-    User,
-    UserPlus,
+    Sparkles,
+    UserCircle2,
 } from "lucide-react";
 import { AuthModal } from "@/components/auth/auth-modal";
 import type { AppTab } from "@/lib/frontend/app-tabs";
 
-type UserMenuProps = {
-    onTabChange: (tab: AppTab) => void;
-};
-
-export function UserMenu({ onTabChange }: UserMenuProps) {
+export function UserMenu({
+    onTabChange,
+}: {
+    onTabChange?: (tab: AppTab) => void;
+}) {
+    const router = useRouter();
     const { data: session, status } = useSession();
 
     const [authOpen, setAuthOpen] = useState(false);
@@ -28,27 +30,36 @@ export function UserMenu({ onTabChange }: UserMenuProps) {
     const [menuOpen, setMenuOpen] = useState(false);
 
     const loading = status === "loading";
-    const loggedIn = status === "authenticated" && session?.user;
+    const loggedIn = status === "authenticated";
+    const isAdmin = session?.user?.role === "ADMIN";
 
     function openLogin() {
         setAuthMode("login");
         setAuthOpen(true);
-        setMenuOpen(false);
     }
 
     function openSignup() {
         setAuthMode("signup");
         setAuthOpen(true);
+    }
+
+    function openTab(tab: AppTab) {
         setMenuOpen(false);
+        onTabChange?.(tab);
+    }
+
+    async function handleLogout() {
+        setMenuOpen(false);
+        await signOut({
+            callbackUrl: "/",
+        });
     }
 
     if (loading) {
         return (
-            <div className="hidden items-center gap-2 lg:flex">
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-500 shadow-lg shadow-slate-900/5 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Checking
-                </div>
+            <div className="flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Session
             </div>
         );
     }
@@ -56,10 +67,10 @@ export function UserMenu({ onTabChange }: UserMenuProps) {
     if (!loggedIn) {
         return (
             <>
-                <div className="hidden items-center gap-2 lg:flex">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={openLogin}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                        className="hidden h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 sm:inline-flex"
                     >
                         <LogIn className="h-4 w-4" />
                         Login
@@ -67,156 +78,116 @@ export function UserMenu({ onTabChange }: UserMenuProps) {
 
                     <button
                         onClick={openSignup}
-                        className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
+                        className="inline-flex h-11 items-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
                     >
                         Get Started
-                        <ArrowRight className="h-4 w-4" />
+                        <Sparkles className="h-4 w-4" />
                     </button>
                 </div>
 
-                <div className="flex items-center gap-2 lg:hidden">
-                    <button
-                        onClick={openLogin}
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg shadow-slate-900/5 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
-                    >
-                        <LogIn className="h-5 w-5" />
-                    </button>
-                </div>
-
-                <AuthModal
-                    open={authOpen}
-                    onClose={() => setAuthOpen(false)}
-                    defaultMode={authMode}
-                />
+            <AuthModal
+                open={authOpen}
+                defaultMode={authMode}
+                onClose={() => setAuthOpen(false)}
+            />
             </>
         );
     }
 
+    const displayName =
+        session.user?.name?.trim() ||
+        session.user?.email?.split("@")[0] ||
+        "Investor";
+
+    const initials = getInitials(displayName);
+
     return (
-        <>
-            <div className="relative hidden lg:block">
-                <button
-                    onClick={() => setMenuOpen((current) => !current)}
-                    className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-                >
-                    <UserAvatar
-                        name={session.user.name ?? session.user.email ?? "User"}
-                        image={session.user.image ?? undefined}
-                    />
-
-                    <span className="max-w-[120px] truncate">
-                        {session.user.name ?? session.user.email}
-                    </span>
-
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                </button>
-
-                {menuOpen && (
-                    <div className="absolute right-0 top-14 w-80 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/15 dark:border-white/10 dark:bg-slate-950 dark:shadow-black/40">
-                        <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-                            <div className="flex items-center gap-3">
-                                <UserAvatar
-                                    name={session.user.name ?? session.user.email ?? "User"}
-                                    image={session.user.image ?? undefined}
-                                    large
-                                />
-
-                                <div className="min-w-0">
-                                    <p className="truncate font-black text-slate-950 dark:text-white">
-                                        {session.user.name ?? "EquityLens User"}
-                                    </p>
-
-                                    <p className="truncate text-sm font-bold text-slate-500 dark:text-slate-400">
-                                        {session.user.email}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-600 dark:text-emerald-300">
-                                <ShieldCheck className="h-3.5 w-3.5" />
-                                Signed in
-                            </div>
-                        </div>
-
-                        <div className="mt-3 space-y-1.5">
-                            <button
-                                onClick={() => {
-                                    onTabChange("settings");
-                                    setMenuOpen(false);
-                                }}
-                                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
-                            >
-                                <Settings className="h-4 w-4" />
-                                Settings
-                            </button>
-
-                            <button
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    void signOut({
-                                        callbackUrl: "/",
-                                    });
-                                }}
-                                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black text-red-600 transition hover:bg-red-400/10 dark:text-red-300"
-                            >
-                                <LogOut className="h-4 w-4" />
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
+        <div className="relative">
             <button
                 onClick={() => setMenuOpen((current) => !current)}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg shadow-slate-900/5 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 lg:hidden"
+                className="flex h-11 items-center gap-3 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-4 text-sm font-black text-slate-800 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"
             >
-                <UserAvatar
-                    name={session.user.name ?? session.user.email ?? "User"}
-                    image={session.user.image ?? undefined}
-                />
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 text-xs font-black text-white dark:bg-white dark:text-slate-950">
+                    {session.user?.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={session.user.image}
+                            alt={displayName}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        initials
+                    )}
+                </div>
+
+                <span className="hidden max-w-[120px] truncate md:inline">
+                    {displayName}
+                </span>
+
+                <ChevronDown className="h-4 w-4 text-slate-400" />
             </button>
 
             {menuOpen && (
-                <div className="fixed inset-x-4 top-20 z-[70] rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/15 dark:border-white/10 dark:bg-slate-950 lg:hidden">
-                    <div className="mb-4 flex items-center gap-3">
-                        <UserAvatar
-                            name={session.user.name ?? session.user.email ?? "User"}
-                            image={session.user.image ?? undefined}
-                            large
-                        />
+                <div className="absolute right-0 z-50 mt-3 w-72 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/15 dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
+                    <div className="border-b border-slate-100 p-4 dark:border-white/10">
+                        <p className="text-sm font-black text-slate-950 dark:text-white">
+                            {displayName}
+                        </p>
 
-                        <div className="min-w-0">
-                            <p className="truncate font-black text-slate-950 dark:text-white">
-                                {session.user.name ?? "EquityLens User"}
-                            </p>
+                        <p className="mt-1 truncate text-xs font-bold text-slate-500 dark:text-slate-400">
+                            {session.user?.email}
+                        </p>
 
-                            <p className="truncate text-sm font-bold text-slate-500 dark:text-slate-400">
-                                {session.user.email}
-                            </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-[11px] font-black text-cyan-700 dark:text-cyan-300">
+                                {session.user?.role ?? "USER"}
+                            </span>
+
+                            {isAdmin && (
+                                <span className="rounded-full bg-red-400/10 px-3 py-1 text-[11px] font-black text-red-700 dark:text-red-300">
+                                    ADMIN
+                                </span>
+                            )}
                         </div>
                     </div>
 
-                    <div className="grid gap-2">
-                        <button
-                            onClick={() => {
-                                onTabChange("settings");
-                                setMenuOpen(false);
-                            }}
-                            className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 dark:bg-white/5 dark:text-slate-300"
-                        >
-                            <Settings className="h-4 w-4" />
-                            Settings
-                        </button>
+                    <div className="p-2">
+                        {isAdmin && (
+                            <MenuButton
+                                icon={<ShieldCheck className="h-4 w-4" />}
+                                label="Admin Dashboard"
+                                description="Users, health, audit, cleanup"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    router.push("/admin");
+                                }}
+                            />
+                        )}
+
+                        <MenuButton
+                            icon={<History className="h-4 w-4" />}
+                            label="History"
+                            description="Saved research reports"
+                            onClick={() => openTab("history")}
+                        />
+
+                        <MenuButton
+                            icon={<Settings className="h-4 w-4" />}
+                            label="Settings"
+                            description="Profile and preferences"
+                            onClick={() => openTab("settings")}
+                        />
+
+                        <MenuButton
+                            icon={<UserCircle2 className="h-4 w-4" />}
+                            label="Portfolio"
+                            description="Watchlist workspace"
+                            onClick={() => openTab("portfolio")}
+                        />
 
                         <button
-                            onClick={() => {
-                                setMenuOpen(false);
-                                void signOut({
-                                    callbackUrl: "/",
-                                });
-                            }}
-                            className="flex items-center gap-3 rounded-2xl bg-red-400/10 px-4 py-3 text-sm font-black text-red-600 dark:text-red-300"
+                            onClick={() => void handleLogout()}
+                            className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black text-red-600 transition hover:bg-red-400/10 dark:text-red-300"
                         >
                             <LogOut className="h-4 w-4" />
                             Logout
@@ -224,37 +195,52 @@ export function UserMenu({ onTabChange }: UserMenuProps) {
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }
 
-function UserAvatar({
-    name,
-    image,
-    large = false,
+function MenuButton({
+    icon,
+    label,
+    description,
+    onClick,
 }: {
-    name: string;
-    image?: string;
-    large?: boolean;
+    icon: React.ReactNode;
+    label: string;
+    description: string;
+    onClick: () => void;
 }) {
-    const sizeClass = large ? "h-12 w-12" : "h-8 w-8";
-    const initial = name.trim().charAt(0).toUpperCase() || "U";
+    return (
+        <button
+            onClick={onClick}
+            className="flex w-full items-start gap-3 rounded-2xl px-4 py-3 text-left transition hover:bg-slate-100 dark:hover:bg-white/10"
+        >
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                {icon}
+            </div>
 
-    if (image) {
-        return (
-            <img
-                src={image}
-                alt={name}
-                className={`${sizeClass} rounded-full object-cover`}
-            />
-        );
+            <span>
+                <span className="block text-sm font-black text-slate-950 dark:text-white">
+                    {label}
+                </span>
+
+                <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {description}
+                </span>
+            </span>
+        </button>
+    );
+}
+
+function getInitials(name: string) {
+    const parts = name
+        .split(" ")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
 
-    return (
-        <div
-            className={`${sizeClass} flex items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white dark:bg-white dark:text-slate-950`}
-        >
-            {large ? <User className="h-5 w-5" /> : initial}
-        </div>
-    );
+    return name.slice(0, 2).toUpperCase();
 }
