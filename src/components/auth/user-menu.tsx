@@ -4,7 +4,6 @@ import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-    ChevronDown,
     History,
     Loader2,
     LogIn,
@@ -50,6 +49,7 @@ export function UserMenu({
 
     async function handleLogout() {
         setMenuOpen(false);
+
         await signOut({
             callbackUrl: "/",
         });
@@ -57,9 +57,8 @@ export function UserMenu({
 
     if (loading) {
         return (
-            <div className="flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Session
             </div>
         );
     }
@@ -70,7 +69,7 @@ export function UserMenu({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={openLogin}
-                        className="hidden h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 sm:inline-flex"
+                        className="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15 sm:inline-flex"
                     >
                         <LogIn className="h-4 w-4" />
                         Login
@@ -78,18 +77,18 @@ export function UserMenu({
 
                     <button
                         onClick={openSignup}
-                        className="inline-flex h-11 items-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
+                        className="inline-flex h-11 items-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
                     >
-                        Get Started
                         <Sparkles className="h-4 w-4" />
+                        Start
                     </button>
                 </div>
 
-            <AuthModal
-                open={authOpen}
-                defaultMode={authMode}
-                onClose={() => setAuthOpen(false)}
-            />
+                <AuthModal
+                    open={authOpen}
+                    defaultMode={authMode}
+                    onClose={() => setAuthOpen(false)}
+                />
             </>
         );
     }
@@ -105,26 +104,19 @@ export function UserMenu({
         <div className="relative">
             <button
                 onClick={() => setMenuOpen((current) => !current)}
-                className="flex h-11 items-center gap-3 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-4 text-sm font-black text-slate-800 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"
+                aria-label="Open profile menu"
+                className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-sm font-black text-slate-950 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
             >
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 text-xs font-black text-white dark:bg-white dark:text-slate-950">
-                    {session.user?.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={session.user.image}
-                            alt={displayName}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        initials
-                    )}
-                </div>
-
-                <span className="hidden max-w-[120px] truncate md:inline">
-                    {displayName}
-                </span>
-
-                <ChevronDown className="h-4 w-4 text-slate-400" />
+                {session.user?.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={session.user.image}
+                        alt={displayName}
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    initials
+                )}
             </button>
 
             {menuOpen && (

@@ -58,3 +58,11 @@ html.dark body {
 .animate-orbit {
   animation: orbit 16s linear infinite;
 }
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

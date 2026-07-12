@@ -1,4 +1,4 @@
-export type InvestmentDecision = "INVEST" | "WATCHLIST" | "PASS";
+export type InvestmentDecision = "INVEST" | "WATCHLIST" | "PASS" | "INSUFFICIENT_DATA";
 
 export type ResearchStatus =
   | "PENDING"
@@ -10,15 +10,23 @@ export type ResearchStatus =
   | "COMPLETED"
   | "FAILED";
 
+export type CompanyCoverageMode = "PUBLIC_EQUITY" | "GENERAL_COMPANY";
+
 export type CompanyProfile = {
   symbol: string;
   name: string;
-  exchange?: string;
-  sector?: string;
-  industry?: string;
-  country?: string;
-  currency?: string;
-  marketCap?: number;
+  exchange: string;
+  sector: string;
+  industry: string;
+  country: string;
+  currency: string;
+  marketCap?: number | null;
+
+  coverageMode?: CompanyCoverageMode;
+  isPubliclyTraded?: boolean;
+  resolvedTicker?: string | null;
+
+  marketDataSymbol?: string | null;
 };
 
 export type FinancialSnapshot = {
@@ -35,6 +43,17 @@ export type FinancialSnapshot = {
   priceToSales?: number;
   eps?: number;
   beta?: number;
+  history?: HistoricalFinancialPeriod[];
+};
+
+export type HistoricalFinancialPeriod = {
+  fiscalYear: number;
+  revenue?: number;
+  netIncome?: number;
+  operatingIncome?: number;
+  operatingCashFlow?: number;
+  capitalExpenditure?: number;
+  freeCashFlow?: number;
 };
 
 export type NewsItem = {
@@ -46,6 +65,25 @@ export type NewsItem = {
   sentiment?: "POSITIVE" | "NEUTRAL" | "NEGATIVE";
 };
 
+export type EvidenceSource = {
+  id: string;
+  category: "FINANCIAL" | "FILING" | "NEWS" | "AI_SYNTHESIS";
+  title: string;
+  provider: string;
+  url?: string;
+  publishedAt?: string;
+};
+
+export type ValuationAssessment = {
+  status: "ATTRACTIVE" | "FAIR" | "EXPENSIVE" | "UNKNOWN";
+  summary: string;
+  scenarios: Array<{
+    name: "BEAR" | "BASE" | "BULL";
+    assumptions: string[];
+    signal: string;
+  }>;
+};
+
 export type ScoreBreakdown = {
   growth: number;
   profitability: number;
@@ -53,15 +91,22 @@ export type ScoreBreakdown = {
   valuation: number;
   sentiment: number;
   total: number;
+  coverage?: {
+    growth: boolean;
+    profitability: boolean;
+    balanceSheet: boolean;
+    valuation: boolean;
+    sentiment: boolean;
+  };
 };
 
-export type FinancialDataSource = "ALPHA_VANTAGE" | "MOCK";
-export type NewsDataSource = "FINNHUB" | "MOCK";
+export type FinancialDataSource = "ALPHA_VANTAGE" | "SEC_EDGAR" | "MOCK" | "NOT_AVAILABLE" | "PUBLIC_LISTING_DISCOVERY" | "YAHOO_FINANCE_QUOTE_LIMITED";
+export type NewsDataSource = "FINNHUB" | "MOCK" | "GENERAL_WEB_RESEARCH" | "NOT_AVAILABLE";
 export type MemoProvider = "GEMINI" | "FALLBACK";
 
 export type AgentTraceStep = {
   step: string;
-  status: "SUCCESS" | "FALLBACK" | "FAILED";
+  status: "SUCCESS" | "FALLBACK" | "FAILED" | "SKIPPED";
   provider?: string;
   message: string;
   timestamp: string;
@@ -74,6 +119,22 @@ export type ResearchMetadata = {
   agentVersion: string;
   warnings: string[];
   trace: AgentTraceStep[];
+  evidenceQuality?: {
+    level: "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT";
+    financialCompleteness: number;
+    hasRealFinancials: boolean;
+    hasRealNews: boolean;
+    reasons: string[];
+  };
+  scoringModelVersion?: string;
+  promptVersion?: string;
+  dataRetrievedAt?: string;
+  staleAfter?: string;
+  citationValidation?: {
+    valid: boolean;
+    referencedIds: string[];
+    invalidIds: string[];
+  };
 };
 
 export type InvestmentResearchReport = {
@@ -88,6 +149,10 @@ export type InvestmentResearchReport = {
   bearCase: string[];
   risks: string[];
   whatWouldChangeDecision: string[];
+  catalysts?: string[];
+  monitoringTriggers?: string[];
+  valuationAssessment?: ValuationAssessment;
+  sources?: EvidenceSource[];
   metadata: ResearchMetadata;
   generatedAt: string;
 };
