@@ -440,15 +440,19 @@ function ResearchWorkspace({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversationId, setConversationId] = useState(() => createConversationId());
   const chatViewportRef = useRef<HTMLDivElement>(null);
+  const wasLoadingRef = useRef(false);
 
   useEffect(() => {
-    const selector = loading ? "[data-pending-turn]" : "[data-chat-turn]";
+    const requestStarted = loading && !wasLoadingRef.current;
+    wasLoadingRef.current = loading;
+    if (!requestStarted) return;
+
     const frame = window.requestAnimationFrame(() => {
-      const nodes = chatViewportRef.current?.querySelectorAll<HTMLElement>(selector);
+      const nodes = chatViewportRef.current?.querySelectorAll<HTMLElement>("[data-pending-turn]");
       nodes?.[nodes.length - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [loading, turns.length]);
+  }, [loading]);
 
   return (
     <div className="relative -mt-1">
@@ -770,6 +774,7 @@ function CompareWorkspace({
   const [conversationId, setConversationId] = useState(() => createConversationId());
   const [turns, setTurns] = useState<Array<{ query: string; comparison: ComparisonData; duration: number }>>([]);
   const chatViewportRef = useRef<HTMLDivElement>(null);
+  const wasLoadingRef = useRef(false);
 
   useEffect(() => {
     if (!comparison || loading) return;
@@ -780,13 +785,16 @@ function CompareWorkspace({
   }, [compareDuration, compareQuery, comparison, loading]);
 
   useEffect(() => {
-    const selector = loading ? "[data-pending-turn]" : "[data-chat-turn]";
+    const requestStarted = loading && !wasLoadingRef.current;
+    wasLoadingRef.current = loading;
+    if (!requestStarted) return;
+
     const frame = window.requestAnimationFrame(() => {
-      const nodes = chatViewportRef.current?.querySelectorAll<HTMLElement>(selector);
+      const nodes = chatViewportRef.current?.querySelectorAll<HTMLElement>("[data-pending-turn]");
       nodes?.[nodes.length - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [loading, turns.length]);
+  }, [loading]);
 
   return (
     <div className="relative -mt-1">

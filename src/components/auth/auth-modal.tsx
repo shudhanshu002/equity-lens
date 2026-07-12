@@ -721,7 +721,7 @@ function getDescription(mode: AuthMode) {
     }
 
     if (mode === "verify") {
-        return "Enter the 6-digit OTP sent to your email. During local testing, it appears in the terminal if SMTP is not configured.";
+        return "Enter the 6-digit OTP sent to your email.";
     }
 
     if (mode === "forgot") {

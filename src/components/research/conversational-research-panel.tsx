@@ -149,6 +149,13 @@ export function ConversationalResearchPanel({
                     </div>
                 )}
 
+                {variant === "research" && (
+                    <div className="mb-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200">
+                        <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0" />
+                        <span>Use one chat for one company. Start a new chat to analyze a different company.</span>
+                    </div>
+                )}
+
                 <form
                     onSubmit={handleSubmit}
                     className="rounded-2xl border border-slate-300 bg-white p-2 shadow-[0_10px_35px_rgba(15,23,42,0.10)] transition focus-within:border-slate-400 dark:border-white/15 dark:bg-white/[0.06] dark:shadow-black/30 dark:focus-within:border-white/30"
@@ -185,7 +192,7 @@ export function ConversationalResearchPanel({
 
                 <p className="mt-3 text-center text-xs text-slate-400">
                     {isFollowUp
-                        ? `Questions stay connected to ${contextCompany}. Type “Analyze Company Name” to switch companies.`
+                        ? `Questions in this chat stay connected to ${contextCompany}.`
                         : "EquityLens can make mistakes. Review financial data before investing."}
                 </p>
             </div>

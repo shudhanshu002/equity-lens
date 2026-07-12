@@ -1,6 +1,7 @@
 import { ResearchState } from "@/lib/langgraph/state";
 import { fetchCompanyFinancials } from "@/lib/services/market-data";
 import { enrichCompanyWithQuote } from "@/lib/services/quote-enrichment";
+import { fetchYahooFundamentalsSnapshot } from "@/lib/services/yahoo-api";
 
 type ResearchStateType = typeof ResearchState.State;
 
@@ -40,6 +41,38 @@ export async function fetchFinancialsNode(
 
   if (isIndianListedCompany) {
     const enriched = await enrichCompanyWithQuote(state.company);
+    const quoteSymbol =
+      enriched.company.marketDataSymbol ??
+      `${state.company.symbol}.${state.company.exchange === "NSE" ? "NS" : "BO"}`;
+    const fundamentals = await fetchYahooFundamentalsSnapshot(quoteSymbol).catch(
+      () => null
+    );
+
+    if (fundamentals) {
+      return {
+        status: "FETCHING_FINANCIALS",
+        company: {
+          ...enriched.company,
+          marketCap: fundamentals.marketCap ?? enriched.company.marketCap,
+          currency: fundamentals.currency ?? enriched.company.currency,
+        },
+        financials: fundamentals.financials,
+        metadata: {
+          ...state.metadata,
+          financialDataSource: "YAHOO_FINANCE_FUNDAMENTALS",
+          warnings: enriched.warning ? [enriched.warning] : [],
+          trace: [
+            {
+              step: "fetch_financials",
+              status: "SUCCESS",
+              provider: "YAHOO_FINANCE_FUNDAMENTALS",
+              message: `Fetched available financial metrics for ${quoteSymbol}.`,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+    }
 
     return {
       company: enriched.company,

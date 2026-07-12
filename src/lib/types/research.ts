@@ -100,7 +100,7 @@ export type ScoreBreakdown = {
   };
 };
 
-export type FinancialDataSource = "ALPHA_VANTAGE" | "SEC_EDGAR" | "MOCK" | "NOT_AVAILABLE" | "PUBLIC_LISTING_DISCOVERY" | "YAHOO_FINANCE_QUOTE_LIMITED";
+export type FinancialDataSource = "ALPHA_VANTAGE" | "SEC_EDGAR" | "MOCK" | "NOT_AVAILABLE" | "PUBLIC_LISTING_DISCOVERY" | "YAHOO_FINANCE_QUOTE_LIMITED" | "YAHOO_FINANCE_FUNDAMENTALS";
 export type NewsDataSource = "FINNHUB" | "MOCK" | "GENERAL_WEB_RESEARCH" | "NOT_AVAILABLE";
 export type MemoProvider = "GEMINI" | "FALLBACK";
 
