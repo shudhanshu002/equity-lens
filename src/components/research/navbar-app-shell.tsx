@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     BrainCircuit,
     Check,
@@ -18,10 +18,30 @@ const NAVBAR_TABS: AppTab[] = [
     "home",
     "research",
     "compare",
-    "history",
     "portfolio",
     "exports",
 ];
+
+type ViewTransitionDocument = Document & {
+    startViewTransition?: (updateCallback: () => void) => {
+        ready: Promise<void>;
+    };
+};
+
+function spawnThemeRipple(originX: number, originY: number, nextDarkMode: boolean) {
+    const ripple = document.createElement("span");
+
+    ripple.className = "theme-ripple";
+    ripple.style.left = `${originX}px`;
+    ripple.style.top = `${originY}px`;
+    ripple.style.setProperty(
+        "--theme-ripple-color",
+        nextDarkMode ? "rgba(15, 23, 42, 0.32)" : "rgba(255, 255, 255, 0.56)"
+    );
+
+    document.body.appendChild(ripple);
+    ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+}
 
 export function NavbarAppShell({
     activeTab,
@@ -34,6 +54,9 @@ export function NavbarAppShell({
 }) {
     const [darkMode, setDarkMode] = useState(true);
     const [commandOpen, setCommandOpen] = useState(false);
+    const [navbarHidden, setNavbarHidden] = useState(false);
+    const lastScrollY = useRef(0);
+    const revealTimer = useRef<number | null>(null);
 
     const navItems = useMemo(
         () => APP_NAV_ITEMS.filter((item) => NAVBAR_TABS.includes(item.id)),
@@ -68,12 +91,79 @@ export function NavbarAppShell({
         };
     }, []);
 
-    function toggleTheme() {
-        const nextDarkMode = !darkMode;
+    useEffect(() => {
+        lastScrollY.current = window.scrollY;
 
-        setDarkMode(nextDarkMode);
-        document.documentElement.classList.toggle("dark", nextDarkMode);
-        localStorage.setItem("theme", nextDarkMode ? "dark" : "light");
+        function handleScroll() {
+            const currentScrollY = window.scrollY;
+            const scrollingDown = currentScrollY > lastScrollY.current;
+
+            if (revealTimer.current) {
+                window.clearTimeout(revealTimer.current);
+            }
+
+            setNavbarHidden(scrollingDown && currentScrollY > 24);
+
+            revealTimer.current = window.setTimeout(() => {
+                setNavbarHidden(false);
+            }, 180);
+
+            lastScrollY.current = currentScrollY;
+        }
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+
+            if (revealTimer.current) {
+                window.clearTimeout(revealTimer.current);
+            }
+        };
+    }, []);
+
+    function toggleTheme(event: React.MouseEvent<HTMLButtonElement>) {
+        const nextDarkMode = !darkMode;
+        const buttonRect = event.currentTarget.getBoundingClientRect();
+        const originX = buttonRect.left + buttonRect.width / 2;
+        const originY = buttonRect.top + buttonRect.height / 2;
+
+        spawnThemeRipple(originX, originY, nextDarkMode);
+
+        const applyTheme = () => {
+            setDarkMode(nextDarkMode);
+            document.documentElement.classList.toggle("dark", nextDarkMode);
+            localStorage.setItem("theme", nextDarkMode ? "dark" : "light");
+        };
+
+        const transitionDocument = document as ViewTransitionDocument;
+
+        if (!transitionDocument.startViewTransition) {
+            applyTheme();
+            return;
+        }
+
+        const transition = transitionDocument.startViewTransition(applyTheme);
+
+        transition.ready.then(() => {
+            const maxX = Math.max(originX, window.innerWidth - originX);
+            const maxY = Math.max(originY, window.innerHeight - originY);
+            const endRadius = Math.hypot(maxX, maxY);
+
+            document.documentElement.animate(
+                {
+                    clipPath: [
+                        `circle(0px at ${originX}px ${originY}px)`,
+                        `circle(${endRadius}px at ${originX}px ${originY}px)`,
+                    ],
+                },
+                {
+                    duration: 2100,
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                    pseudoElement: "::view-transition-new(root)",
+                }
+            );
+        });
     }
 
     function changeTab(tab: AppTab) {
@@ -83,44 +173,46 @@ export function NavbarAppShell({
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
-            <header className="fixed left-0 right-0 top-0 z-50 px-3 pt-3 sm:px-5">
-                <nav className="mx-auto flex h-16 max-w-7xl items-center gap-2 rounded-[1.5rem] border border-slate-200/80 bg-white/90 px-3 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 dark:shadow-black/30">
+            <header
+                className={`fixed left-0 right-0 top-0 z-50 px-3 pt-3 transition-all duration-500 ease-out sm:px-5 ${
+                    navbarHidden
+                        ? "-translate-y-24 opacity-0"
+                        : "translate-y-0 opacity-100"
+                }`}
+            >
+                <nav className="mx-auto grid h-14 w-full max-w-5xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-full border border-slate-200/80 bg-white/92 px-2.5 shadow-lg shadow-slate-900/8 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/88 dark:shadow-black/25 lg:w-[60vw]">
                     <button
                         onClick={() => changeTab("home")}
                         aria-label="EquityLens Home"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white shadow-sm shadow-slate-900/15 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
                     >
-                        <BrainCircuit className="h-6 w-6" />
+                        <BrainCircuit className="h-5 w-5" />
                     </button>
 
-                    <div className="mx-1 h-8 w-px shrink-0 bg-slate-200 dark:bg-white/10" />
-
-                    <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-none">
+                    <div className="flex min-w-0 items-center justify-start gap-1 overflow-x-auto scrollbar-none sm:justify-center">
                         {navItems.map((item) => {
-                            const Icon = item.icon;
                             const selected = activeTab === item.id;
 
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => changeTab(item.id)}
-                                    className={`inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl px-3 text-sm font-black transition md:px-4 ${selected
-                                            ? "bg-slate-950 text-white shadow-lg shadow-slate-900/15 dark:bg-white dark:text-slate-950"
+                                    className={`inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-bold transition md:px-4 ${selected
+                                            ? "bg-slate-950 text-white shadow-sm shadow-slate-900/10 dark:bg-white dark:text-slate-950"
                                             : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                                         }`}
                                 >
-                                    <Icon className="h-4 w-4" />
                                     <span>{item.label}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="ml-auto flex shrink-0 items-center gap-2">
+                    <div className="ml-auto flex shrink-0 items-center gap-1.5">
                         <button
                             onClick={toggleTheme}
                             aria-label="Toggle theme"
-                            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                         >
                             {darkMode ? (
                                 <Sun className="h-5 w-5" />
@@ -134,15 +226,9 @@ export function NavbarAppShell({
                 </nav>
             </header>
 
-            <main className="pt-20">{children}</main>
-
-            <button
-                onClick={() => setCommandOpen(true)}
-                className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-2xl shadow-slate-900/20 transition hover:-translate-y-1 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:shadow-black/40"
-            >
-                <Command className="h-4 w-4" />
-                <span>Ctrl K</span>
-            </button>
+            <main className="mx-auto w-full max-w-[1440px] px-4 pb-12 pt-20 sm:px-6 lg:px-8">
+                {children}
+            </main>
 
             {commandOpen && (
                 <FloatingCommandPanel

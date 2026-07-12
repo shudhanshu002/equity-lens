@@ -1,134 +1,176 @@
 import {
-    ArrowUpRight,
     Brain,
-    Code2,
     Database,
-    FileText,
+    ExternalLink,
     GitBranch,
     ShieldAlert,
     Sparkles,
+    Zap,
 } from "lucide-react";
+import Link from "next/link";
 
-const FOOTER_STACK = [
-    {
-        icon: <GitBranch className="h-4 w-4" />,
-        label: "Agent",
-        value: "LangGraph.js",
-    },
-    {
-        icon: <Brain className="h-4 w-4" />,
-        label: "LLM",
-        value: "Gemini",
-    },
-    {
-        icon: <Database className="h-4 w-4" />,
-        label: "Data",
-        value: "Alpha Vantage",
-    },
-    {
-        icon: <FileText className="h-4 w-4" />,
-        label: "Output",
-        value: "Markdown Memos",
-    },
+const STACK = [
+    { name: "Next.js", icon: Zap },
+    { name: "TypeScript", icon: Zap },
+    { name: "LangGraph.js", icon: GitBranch },
+    { name: "Gemini", icon: Brain },
+    { name: "PostgreSQL", icon: Database },
+    { name: "Alpha Vantage", icon: Database },
+];
+
+const WORKSPACE_LINKS = [
+    { label: "Home Workspace", href: "/" },
+    { label: "Analyze Stocks", href: "/?tab=research" },
+    { label: "Compare Markets", href: "/?tab=compare" },
+];
+
+const DATA_LINKS = [
+    { label: "Portfolio Watchlist", href: "/portfolio" },
+    { label: "Research History", href: "/history" },
+    { label: "Watchlist Sync", href: "/watchlist" },
 ];
 
 export function AppFooter() {
+    const year = new Date().getFullYear();
+
     return (
-        <footer className="mt-16 pb-8">
-            <div className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30">
-                <div className="grid lg:grid-cols-[1fr_0.85fr]">
-                    <div className="p-8 md:p-10">
-                        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-600 dark:text-cyan-300">
-                            <Sparkles className="h-4 w-4" />
-                            EquityLens AI
+        <footer className="mt-16 border-t border-slate-200 py-6 dark:border-white/10">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <Link href="/" className="inline-flex items-center gap-3" aria-label="EquityLens home">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-white dark:bg-white dark:text-slate-950">
+                        <Brain className="h-4 w-4" />
+                    </span>
+                    <span>
+                        <span className="block text-sm font-semibold text-slate-950 dark:text-white">EquityLens</span>
+                        <span className="block text-xs text-slate-400">AI investment research workspace</span>
+                    </span>
+                </Link>
+
+                <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-500 dark:text-slate-400" aria-label="Footer navigation">
+                    <Link href="/?tab=research" className="hover:text-slate-950 dark:hover:text-white">Research</Link>
+                    <Link href="/?tab=compare" className="hover:text-slate-950 dark:hover:text-white">Compare</Link>
+                    <Link href="/?tab=portfolio" className="hover:text-slate-950 dark:hover:text-white">Portfolio</Link>
+                    <Link href="/?tab=exports" className="hover:text-slate-950 dark:hover:text-white">Exports</Link>
+                </nav>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2 border-t border-slate-200 pt-4 text-xs text-slate-400 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                <span>© {year} EquityLens</span>
+                <span>Designed and developed by Shudhanshu Kumar Singh</span>
+            </div>
+        </footer>
+    );
+
+    /* Legacy footer retained below while the compact footer is active. */
+    return (
+        <footer className="mt-20 pb-8">
+            <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 text-white shadow-xl shadow-slate-950/10 dark:border-white/10 dark:shadow-black/30">
+                <div
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.12),_transparent_32%)]"
+                />
+
+                <div
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,_transparent_1px),linear-gradient(90deg,_rgba(255,255,255,0.025)_1px,_transparent_1px)] bg-[size:42px_42px]"
+                />
+
+                <div className="relative px-6 py-10 md:px-10 lg:px-12">
+                    <div className="grid gap-10 lg:grid-cols-[1.4fr_0.7fr_0.7fr]">
+                        <div>
+                            <Link
+                                href="/"
+                                aria-label="EquityLens AI home"
+                                className="inline-flex items-center gap-3"
+                            >
+                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-lg shadow-black/20">
+                                    <Brain className="h-5 w-5" />
+                                </span>
+
+                                <span>
+                                    <span className="block text-lg font-black tracking-tight">
+                                        EquityLens AI
+                                    </span>
+
+                                    <span className="block text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">
+                                        Investment Research Agent
+                                    </span>
+                                </span>
+                            </Link>
+
+                            <p className="mt-5 max-w-xl text-sm leading-7 text-slate-300">
+                                Research public companies, evaluate financial health, track
+                                recent news, compare opportunities, and generate explainable
+                                investment memos using an inspectable multi-agent workflow.
+                            </p>
+
+                            <div className="mt-6 inline-flex items-start gap-3 rounded-2xl border border-amber-300/15 bg-amber-300/[0.07] px-4 py-3">
+                                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+
+                                <p className="max-w-xl text-xs leading-6 text-amber-100/75">
+                                    EquityLens is an educational research tool and does not
+                                    provide financial advice, brokerage services, or guaranteed
+                                    investment outcomes.
+                                </p>
+                            </div>
                         </div>
 
-                        <h2 className="max-w-3xl text-3xl font-black tracking-tight text-slate-950 dark:text-white md:text-4xl">
-                            AI investment research built with transparent scoring and
-                            inspectable agent workflows.
-                        </h2>
+                        <FooterColumn title="Workspace" links={WORKSPACE_LINKS} />
 
-                        <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                            EquityLens AI turns company names into structured investment
-                            research reports using financial data, deterministic scoring,
-                            source metadata, LLM-generated memos, comparison ranking, and
-                            exportable outputs.
-                        </p>
+                        <FooterColumn title="User Data" links={DATA_LINKS} />
+                    </div>
 
-                        <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            {FOOTER_STACK.map((item) => (
-                                <div
-                                    key={item.label}
-                                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/60"
-                                >
-                                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-cyan-600 shadow-sm dark:bg-white/10 dark:text-cyan-300">
-                                        {item.icon}
-                                    </div>
-
-                                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                                        {item.label}
-                                    </p>
-
-                                    <p className="mt-1 text-sm font-black text-slate-950 dark:text-white">
-                                        {item.value}
-                                    </p>
+                    <div className="mt-10 border-t border-white/10 pt-7">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    Built with
                                 </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    <div className="relative bg-slate-950 p-8 text-white md:p-10">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.25),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(139,92,246,0.22),_transparent_35%)]" />
-
-                        <div className="relative">
-                            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                                <ShieldAlert className="h-7 w-7 text-amber-300" />
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {STACK.map(({ name, icon: Icon }) => (
+                                        <span
+                                            key={name}
+                                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-300 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+                                        >
+                                            <Icon className="h-3.5 w-3.5 text-cyan-300" />
+                                            {name}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
 
-                            <p className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-amber-300">
-                                Disclaimer
-                            </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <a
+                                    href="#"
+                                    aria-label="View EquityLens source code on GitHub"
+                                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-xs font-black text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+                                >
+                                    <GitBranch className="h-4 w-4" />
+                                    GitHub
+                                    <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+                                </a>
 
-                            <h3 className="text-2xl font-black">
-                                Research demo, not financial advice
-                            </h3>
-
-                            <p className="mt-4 text-sm leading-7 text-slate-300">
-                                This project is built for educational, technical, and product
-                                demonstration purposes. It does not provide financial advice.
-                                Users should independently verify all results before making
-                                investment decisions.
-                            </p>
-
-                            <div className="mt-6 grid gap-3">
-                                <FooterLink
-                                    icon={<Code2 className="h-4 w-4" />}
-                                    label="Add GitHub repository link in README"
-                                />
-
-                                <FooterLink
-                                    icon={<FileText className="h-4 w-4" />}
-                                    label="Include example runs and AI usage logs"
-                                />
-
-                                <FooterLink
-                                    icon={<ArrowUpRight className="h-4 w-4" />}
-                                    label="Deploy on Vercel for bonus submission value"
-                                />
+                                <Link
+                                    href="/?tab=research"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-950 transition hover:bg-cyan-100"
+                                >
+                                    Start research
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </Link>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="border-t border-slate-200 px-8 py-5 dark:border-white/10 md:px-10">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                            Built with Next.js, TypeScript, Tailwind CSS, LangGraph.js,
-                            Gemini, Alpha Vantage, and Recharts.
-                        </p>
+                    <div className="mt-7 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs font-semibold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                        <p>© {year} EquityLens AI. All rights reserved.</p>
 
-                        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                            © 2026 EquityLens AI
+                        <p>
+                            Designed and developed by{" "}
+                            <span className="font-black text-slate-200">
+                                Shudhanshu Kumar Singh
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -137,20 +179,33 @@ export function AppFooter() {
     );
 }
 
-function FooterLink({
-    icon,
-    label,
-}: {
-    icon: React.ReactNode;
-    label: string;
-}) {
-    return (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-cyan-300">
-                {icon}
-            </div>
+type FooterColumnProps = {
+    title: string;
+    links: Array<{
+        label: string;
+        href: string;
+    }>;
+};
 
-            <p className="text-sm font-bold text-slate-300">{label}</p>
-        </div>
+function FooterColumn({ title, links }: FooterColumnProps) {
+    return (
+        <nav aria-label={`${title} links`}>
+            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                {title}
+            </h3>
+
+            <ul className="mt-4 space-y-3">
+                {links.map((link) => (
+                    <li key={link.label}>
+                        <Link
+                            href={link.href}
+                            className="text-sm font-semibold text-slate-300 transition-colors hover:text-cyan-300"
+                        >
+                            {link.label}
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </nav>
     );
 }
