@@ -5,13 +5,11 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
     Loader2,
-    LogIn,
     LogOut,
     Settings,
     ShieldCheck,
     Sparkles,
 } from "lucide-react";
-import { AuthModal } from "@/components/auth/auth-modal";
 import type { AppTab } from "@/lib/frontend/app-tabs";
 
 export function UserMenu({
@@ -22,23 +20,12 @@ export function UserMenu({
     const router = useRouter();
     const { data: session, status } = useSession();
 
-    const [authOpen, setAuthOpen] = useState(false);
-    const [authMode, setAuthMode] = useState<"login" | "signup">("login");
     const [menuOpen, setMenuOpen] = useState(false);
+    const [signingOut, setSigningOut] = useState(false);
 
     const loading = status === "loading";
     const loggedIn = status === "authenticated";
     const isAdmin = session?.user?.role === "ADMIN";
-
-    function openLogin() {
-        setAuthMode("login");
-        setAuthOpen(true);
-    }
-
-    function openSignup() {
-        setAuthMode("signup");
-        setAuthOpen(true);
-    }
 
     function openTab(tab: AppTab) {
         setMenuOpen(false);
@@ -46,7 +33,7 @@ export function UserMenu({
     }
 
     async function handleLogout() {
-        setMenuOpen(false);
+        setSigningOut(true);
 
         await signOut({
             callbackUrl: "/",
@@ -63,31 +50,13 @@ export function UserMenu({
 
     if (!loggedIn) {
         return (
-            <>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={openLogin}
-                        className="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15 sm:inline-flex"
-                    >
-                        <LogIn className="h-4 w-4" />
-                        Login
-                    </button>
-
-                    <button
-                        onClick={openSignup}
-                        className="inline-flex h-11 items-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
-                    >
-                        <Sparkles className="h-4 w-4" />
-                        Start
-                    </button>
-                </div>
-
-                <AuthModal
-                    open={authOpen}
-                    defaultMode={authMode}
-                    onClose={() => setAuthOpen(false)}
-                />
-            </>
+            <button
+                onClick={() => router.push("/auth/login")}
+                className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-slate-950 px-3.5 text-xs font-black text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 sm:h-11 sm:px-5 sm:text-sm dark:bg-white dark:text-slate-950"
+            >
+                <Sparkles className="h-4 w-4" />
+                Get Started
+            </button>
         );
     }
 
@@ -103,7 +72,8 @@ export function UserMenu({
             <button
                 onClick={() => setMenuOpen((current) => !current)}
                 aria-label="Open profile menu"
-                className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-sm font-black text-slate-950 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                aria-expanded={menuOpen}
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-800 shadow-sm transition hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
             >
                 {session.user?.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -118,24 +88,20 @@ export function UserMenu({
             </button>
 
             {menuOpen && (
-                <div className="absolute right-0 z-50 mt-3 w-72 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/15 dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
-                    <div className="border-b border-slate-100 p-4 dark:border-white/10">
-                        <p className="text-sm font-black text-slate-950 dark:text-white">
+                <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
+                    <div className="border-b border-slate-100 px-3 py-3 dark:border-white/10">
+                        <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
                             {displayName}
                         </p>
 
-                        <p className="mt-1 truncate text-xs font-bold text-slate-500 dark:text-slate-400">
+                        <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                             {session.user?.email}
                         </p>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <span className={`rounded-full px-3 py-1 text-[11px] font-black ${isAdmin ? "bg-red-400/10 text-red-700 dark:text-red-300" : "bg-cyan-400/10 text-cyan-700 dark:text-cyan-300"}`}>
-                                {isAdmin ? "ADMIN" : "USER"}
-                            </span>
-                        </div>
+                        {isAdmin && <span className="mt-2 inline-flex rounded-md bg-violet-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:bg-violet-400/10 dark:text-violet-300">Admin</span>}
                     </div>
 
-                    <div className="p-2">
+                    <div className="py-1">
                         {isAdmin && (
                             <MenuButton
                                 icon={<ShieldCheck className="h-4 w-4" />}
@@ -155,10 +121,11 @@ export function UserMenu({
 
                         <button
                             onClick={() => void handleLogout()}
-                            className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black text-red-600 transition hover:bg-red-400/10 dark:text-red-300"
+                            disabled={signingOut}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 dark:text-red-300 dark:hover:bg-red-400/10"
                         >
-                            <LogOut className="h-4 w-4" />
-                            Logout
+                            {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                            {signingOut ? "Signing out…" : "Sign out"}
                         </button>
                     </div>
                 </div>
@@ -179,13 +146,13 @@ function MenuButton({
     return (
         <button
             onClick={onClick}
-            className="flex w-full items-start gap-3 rounded-2xl px-4 py-3 text-left transition hover:bg-slate-100 dark:hover:bg-white/10"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-100 dark:hover:bg-white/10"
         >
-            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
                 {icon}
             </div>
 
-            <span className="block text-sm font-semibold text-slate-950 dark:text-white">
+            <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">
                     {label}
             </span>
         </button>

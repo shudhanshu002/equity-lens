@@ -4,7 +4,6 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import {
     ArrowLeft,
-    CheckCircle2,
     Eye,
     EyeOff,
     Loader2,
@@ -286,59 +285,35 @@ export function AuthModal({
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-xl">
-            <div className="relative grid max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-white shadow-2xl shadow-slate-950/30 dark:bg-slate-950 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-950/55 px-4 py-6 backdrop-blur-md sm:py-10">
+            <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/20 dark:border-white/10 dark:bg-slate-950">
                 <button
                     onClick={onClose}
-                    className="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-lg transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-slate-300"
+                    aria-label="Close authentication"
+                    className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
                 >
                     <X className="h-4 w-4" />
                 </button>
 
-                <div className="relative hidden overflow-hidden bg-slate-950 p-8 text-white lg:block">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.32),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(139,92,246,0.28),_transparent_35%)]" />
-
-                    <div className="relative flex h-full flex-col justify-between">
-                        <div>
-                            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                                <Sparkles className="h-7 w-7 text-cyan-300" />
+                <div className="p-6 sm:p-8">
+                    <div className="mb-7 pr-10">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white dark:bg-white dark:text-slate-950">
+                                <Sparkles className="h-5 w-5" />
                             </div>
-
-                            <p className="mb-3 text-sm font-black uppercase tracking-[0.3em] text-cyan-300">
-                                EquityLens AI
-                            </p>
-
-                            <h2 className="text-4xl font-black tracking-tight">
-                                Your AI investment research workspace.
-                            </h2>
-
-                            <p className="mt-5 text-sm leading-7 text-slate-300">
-                                Login to save research history, portfolio watchlists, exports,
-                                settings, and personal investment memos.
-                            </p>
+                            <div>
+                                <p className="text-sm font-bold text-slate-950 dark:text-white">EquityLens AI</p>
+                                <p className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <ShieldCheck className="h-3 w-3" /> Secure access
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <AuthFeature text="Save personal research history" />
-                            <AuthFeature text="Store watchlist and portfolio ideas" />
-                            <AuthFeature text="Export Markdown, JSON, CSV and PDF reports" />
-                            <AuthFeature text="Use Google or email/password login" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-h-[92vh] overflow-y-auto p-6 md:p-10">
-                    <div className="mb-8 pr-12">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-600 dark:text-cyan-300">
-                            <ShieldCheck className="h-4 w-4" />
-                            Secure access
-                        </div>
-
-                        <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white md:text-4xl">
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
                             {getTitle(mode)}
                         </h1>
 
-                        <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
                             {getDescription(mode)}
                         </p>
                     </div>
@@ -644,15 +619,6 @@ export function AuthModal({
                     </p>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function AuthFeature({ text }: { text: string }) {
-    return (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-300" />
-            <p className="text-sm font-bold text-slate-200">{text}</p>
         </div>
     );
 }
