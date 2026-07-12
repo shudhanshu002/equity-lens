@@ -10,17 +10,19 @@ export async function resolveCompanyNode(
 
   return {
     status: "RESOLVING_COMPANY",
-    company: result.company,
+    company: result.company!,
     metadata: {
       agentVersion: "1.0.0",
-      warnings: result.warning ? [result.warning] : [],
+      warnings: result.warnings,
       trace: [
         {
           step: "resolve_company",
-          status:
-            result.source === "USER_INPUT_FALLBACK" ? "FALLBACK" : "SUCCESS",
-          provider: result.source,
-          message: `Resolved "${state.input}" to ${result.company.symbol}.`,
+          status: "SUCCESS",
+          provider: result.provider!,
+          message:
+            result.company!.coverageMode === "PUBLIC_EQUITY"
+              ? `Resolved "${state.input}" to ${result.company!.symbol}.`
+              : `Resolved "${state.input}" as a general company research target.`,
           timestamp: new Date().toISOString(),
         },
       ],

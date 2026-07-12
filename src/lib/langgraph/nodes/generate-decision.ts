@@ -25,6 +25,8 @@ export async function generateDecisionNode(
     bearCase: result.memo.bearCase,
     risks: result.memo.risks,
     whatWouldChangeDecision: result.memo.whatWouldChangeDecision,
+    catalysts: result.memo.catalysts,
+    monitoringTriggers: result.memo.monitoringTriggers,
     metadata: {
       agentVersion: "1.0.0",
       memoProvider: result.provider,

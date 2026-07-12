@@ -51,6 +51,16 @@ export const ResearchState = Annotation.Root({
     default: () => [],
   }),
 
+  catalysts: Annotation<string[]>({
+    reducer: (_current, update) => update,
+    default: () => [],
+  }),
+
+  monitoringTriggers: Annotation<string[]>({
+    reducer: (_current, update) => update,
+    default: () => [],
+  }),
+
   metadata: Annotation<ResearchMetadata>({
     reducer: (current, update) => {
       return {
@@ -59,6 +69,12 @@ export const ResearchState = Annotation.Root({
           update.financialDataSource ?? current.financialDataSource,
         newsDataSource: update.newsDataSource ?? current.newsDataSource,
         memoProvider: update.memoProvider ?? current.memoProvider,
+        evidenceQuality: update.evidenceQuality ?? current.evidenceQuality,
+        scoringModelVersion: update.scoringModelVersion ?? current.scoringModelVersion,
+        promptVersion: update.promptVersion ?? current.promptVersion,
+        dataRetrievedAt: update.dataRetrievedAt ?? current.dataRetrievedAt,
+        staleAfter: update.staleAfter ?? current.staleAfter,
+        citationValidation: update.citationValidation ?? current.citationValidation,
         warnings: [...current.warnings, ...update.warnings],
         trace: [...current.trace, ...update.trace],
       };
