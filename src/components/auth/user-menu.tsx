@@ -4,14 +4,12 @@ import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-    History,
     Loader2,
     LogIn,
     LogOut,
     Settings,
     ShieldCheck,
     Sparkles,
-    UserCircle2,
 } from "lucide-react";
 import { AuthModal } from "@/components/auth/auth-modal";
 import type { AppTab } from "@/lib/frontend/app-tabs";
@@ -131,15 +129,9 @@ export function UserMenu({
                         </p>
 
                         <div className="mt-3 flex flex-wrap gap-2">
-                            <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-[11px] font-black text-cyan-700 dark:text-cyan-300">
-                                {session.user?.role ?? "USER"}
+                            <span className={`rounded-full px-3 py-1 text-[11px] font-black ${isAdmin ? "bg-red-400/10 text-red-700 dark:text-red-300" : "bg-cyan-400/10 text-cyan-700 dark:text-cyan-300"}`}>
+                                {isAdmin ? "ADMIN" : "USER"}
                             </span>
-
-                            {isAdmin && (
-                                <span className="rounded-full bg-red-400/10 px-3 py-1 text-[11px] font-black text-red-700 dark:text-red-300">
-                                    ADMIN
-                                </span>
-                            )}
                         </div>
                     </div>
 
@@ -148,7 +140,6 @@ export function UserMenu({
                             <MenuButton
                                 icon={<ShieldCheck className="h-4 w-4" />}
                                 label="Admin Dashboard"
-                                description="Users, health, audit, cleanup"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     router.push("/admin");
@@ -157,24 +148,9 @@ export function UserMenu({
                         )}
 
                         <MenuButton
-                            icon={<History className="h-4 w-4" />}
-                            label="History"
-                            description="Saved research reports"
-                            onClick={() => openTab("history")}
-                        />
-
-                        <MenuButton
                             icon={<Settings className="h-4 w-4" />}
                             label="Settings"
-                            description="Profile and preferences"
                             onClick={() => openTab("settings")}
-                        />
-
-                        <MenuButton
-                            icon={<UserCircle2 className="h-4 w-4" />}
-                            label="Portfolio"
-                            description="Watchlist workspace"
-                            onClick={() => openTab("portfolio")}
                         />
 
                         <button
@@ -194,12 +170,10 @@ export function UserMenu({
 function MenuButton({
     icon,
     label,
-    description,
     onClick,
 }: {
     icon: React.ReactNode;
     label: string;
-    description: string;
     onClick: () => void;
 }) {
     return (
@@ -211,14 +185,8 @@ function MenuButton({
                 {icon}
             </div>
 
-            <span>
-                <span className="block text-sm font-black text-slate-950 dark:text-white">
+            <span className="block text-sm font-semibold text-slate-950 dark:text-white">
                     {label}
-                </span>
-
-                <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    {description}
-                </span>
             </span>
         </button>
     );

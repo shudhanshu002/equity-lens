@@ -88,29 +88,24 @@ export function ChangePasswordCard() {
     }
 
     return (
-        <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-8">
-            <div className="mb-7 flex gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-xl shadow-slate-900/20 dark:bg-white dark:text-slate-950">
-                    <KeyRound className="h-7 w-7" />
+        <section className="max-w-2xl border-b border-slate-200 pb-6 dark:border-white/10">
+            <div className="mb-5 flex gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white dark:bg-white dark:text-slate-950">
+                    <KeyRound className="h-4 w-4" />
                 </div>
 
                 <div>
-                    <p className="mb-2 text-sm font-black uppercase tracking-[0.25em] text-cyan-600 dark:text-cyan-300">
-                        Password Security
-                    </p>
-
-                    <h3 className="text-3xl font-black text-slate-950 dark:text-white">
+                    <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
                         Change your password
                     </h3>
 
-                    <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-400">
-                        Update your password securely. After changing it, all active
-                        sessions are cleared and you will be asked to login again.
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Updating your password signs out active sessions.
                     </p>
                 </div>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[1fr_0.85fr]">
+            <div>
                 <div className="space-y-5">
                     <PasswordInput
                         label="Current Password"
@@ -139,6 +134,11 @@ export function ChangePasswordCard() {
                         onToggleVisible={() => setShowNewPassword((current) => !current)}
                         placeholder="Enter new password"
                     />
+
+                    <div className="-mt-3">
+                        <div className="h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10"><div className={`h-full transition-all ${strength.valid ? "bg-emerald-500" : "bg-amber-500"}`} style={{ width: `${strengthPercentage}%` }} /></div>
+                        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{getPasswordHint(strength, matched, confirmPassword, strengthLabel)}</p>
+                    </div>
 
                     <PasswordInput
                         label="Confirm New Password"
@@ -170,7 +170,7 @@ export function ChangePasswordCard() {
                     <button
                         onClick={() => void handleChangePassword()}
                         disabled={!canSubmit}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-xl shadow-slate-900/15 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-slate-950"
                     >
                         {saving ? (
                             <>
@@ -186,7 +186,7 @@ export function ChangePasswordCard() {
                     </button>
                 </div>
 
-                <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-slate-950/60">
+                <div className="hidden">
                     <div className="mb-5 flex items-center gap-3">
                         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-600 dark:text-cyan-300">
                             <ShieldCheck className="h-5 w-5" />
@@ -268,7 +268,7 @@ function PasswordInput({
                 {label}
             </label>
 
-            <div className="flex h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 transition focus-within:border-cyan-400 dark:border-white/10 dark:bg-slate-950/60">
+            <div className="flex h-10 items-center gap-3 rounded-lg border border-slate-200 px-3 transition focus-within:border-cyan-400 dark:border-white/10">
                 <Lock className="h-5 w-5 text-slate-400" />
 
                 <input
@@ -324,4 +324,21 @@ function PasswordRule({
             </span>
         </div>
     );
+}
+
+function getPasswordHint(
+    strength: ReturnType<typeof validatePasswordStrength>,
+    matched: boolean,
+    confirmation: string,
+    label: string
+) {
+    const missing = [
+        !strength.checks.minLength && "8+ characters",
+        !strength.checks.uppercase && "uppercase",
+        !strength.checks.lowercase && "lowercase",
+        !strength.checks.number && "number",
+    ].filter(Boolean);
+    if (missing.length) return `Add ${missing.join(", ")}.`;
+    if (confirmation && !matched) return "Passwords do not match.";
+    return `${label} password${confirmation && matched ? " · Passwords match" : ""}.`;
 }

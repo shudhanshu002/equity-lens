@@ -14,7 +14,9 @@ import {
     RefreshCcw,
     Save,
     Settings,
+    SlidersHorizontal,
     ShieldCheck,
+    UserRound,
     Sparkles,
     Sun,
     WandSparkles,
@@ -37,9 +39,6 @@ import { SettingsSyncBanner } from "@/components/research/settings-sync-banner";
 import { ProfileSettingsCard } from "@/components/auth/profile-settings-card";
 import { ChangePasswordCard } from "@/components/auth/change-password-card";
 import { AccountDangerZone } from "@/components/auth/account-danger-zone";
-import { SetPasswordCard } from "../auth/set-password-card";
-import { AuthStatusCard } from "../auth/auth-status-card";
-import { CurrentUserCard } from "../auth/current-user-card";
 
 type SettingsState = Omit<
     UserSettings,
@@ -55,6 +54,7 @@ export function DatabaseSettingsPanel() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [section, setSection] = useState<SettingsSection>("profile");
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -160,52 +160,29 @@ export function DatabaseSettingsPanel() {
         setError("");
     }
 
-    if (loading) {
-        return (
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-10 text-center shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950 text-white dark:bg-white dark:text-slate-950">
-                    <Loader2 className="h-7 w-7 animate-spin" />
-                </div>
-
-                <h2 className="text-3xl font-black text-slate-950 dark:text-white">
-                    Loading settings
-                </h2>
-
-                <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                    EquityLens is preparing your provider and theme preferences.
-                </p>
-            </section>
-        );
-    }
-
     return (
-        <div className="space-y-8">
-            <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-                <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-8">
-                    <div className="absolute right-[-14%] top-[-30%] h-80 w-80 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-400/10" />
-                    <div className="absolute bottom-[-34%] left-[12%] h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
-
-                    <div className="relative">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-4 py-2 text-sm font-bold text-violet-600 dark:text-violet-300">
+        <div className="space-y-5 pt-3">
+            <section className="border-b border-slate-200 pb-5 dark:border-white/10">
+                <div>
+                    <div>
+                        <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-violet-600 dark:text-violet-300">
                             <Settings className="h-4 w-4" />
-                            Account Settings
+                            Settings
                         </div>
 
-                        <h2 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">
-                            Configure EquityLens like a real SaaS platform.
+                        <h2 className="text-2xl font-semibold text-slate-950 dark:text-white">
+                            Account settings
                         </h2>
 
-                        <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300">
-                            Save theme, model, provider, risk profile, fallback behavior, and
-                            agent visualization preferences. Logged-in users sync settings to
-                            PostgreSQL.
+                        <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                            Manage your profile, security, and research preferences.
                         </p>
 
-                        <div className="mt-8 flex flex-wrap gap-3">
+                        {section === "preferences" && <div className="mt-4 flex flex-wrap gap-2">
                             <button
                                 onClick={saveSettings}
                                 disabled={saving}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
+                                className="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-slate-950"
                             >
                                 {saving ? (
                                     <>
@@ -214,7 +191,7 @@ export function DatabaseSettingsPanel() {
                                     </>
                                 ) : (
                                     <>
-                                        Save Settings
+                                        Save
                                         <Save className="h-4 w-4" />
                                     </>
                                 )}
@@ -222,12 +199,12 @@ export function DatabaseSettingsPanel() {
 
                             <button
                                 onClick={resetSettings}
-                                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-700 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-700 dark:border-white/10 dark:text-slate-200"
                             >
                                 Reset
                                 <RefreshCcw className="h-4 w-4" />
                             </button>
-                        </div>
+                        </div>}
 
                         {message && (
                             <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300">
@@ -243,55 +220,22 @@ export function DatabaseSettingsPanel() {
                     </div>
                 </div>
 
-                <div className="rounded-[2.5rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-2xl shadow-slate-900/20 dark:border-white/10 md:p-8">
-                    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                        {loggedIn ? (
-                            <ShieldCheck className="h-7 w-7 text-emerald-300" />
-                        ) : (
-                            <Lock className="h-7 w-7 text-amber-300" />
-                        )}
-                    </div>
-
-                    <p className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-cyan-300">
-                        Storage Mode
-                    </p>
-
-                    <h3 className="text-3xl font-black">
-                        {loggedIn ? "Database Synced" : "Local Demo Mode"}
-                    </h3>
-
-                    <p className="mt-4 text-sm leading-7 text-slate-300">
-                        {loggedIn
-                            ? "Your settings are saved to PostgreSQL and linked to your user account."
-                            : "Login to save settings permanently to your account. Until then, theme preferences are stored locally."}
-                    </p>
-
-                    <div className="mt-6 rounded-3xl border border-white/10 bg-white/10 p-5">
-                        <div className="mb-3 flex items-center gap-2 text-emerald-300">
-                            <Database className="h-5 w-5" />
-                            <p className="font-black">Current stack</p>
-                        </div>
-
-                        <p className="text-sm leading-6 text-slate-300">
-                            Gemini + Alpha Vantage + PostgreSQL + Prisma + NextAuth.
-                        </p>
-                    </div>
-                </div>
             </section>
 
-            <ProfileSettingsCard />
+            <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-white/10" aria-label="Settings sections">
+                {settingsSections.map((item) => {
+                    const Icon = item.icon;
+                    return <button key={item.id} onClick={() => setSection(item.id)} className={`inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-medium ${section === item.id ? "border-slate-950 text-slate-950 dark:border-white dark:text-white" : "border-transparent text-slate-500 dark:text-slate-400"}`}><Icon className="h-4 w-4" />{item.label}</button>;
+                })}
+            </nav>
 
-            <CurrentUserCard />
+            {section === "profile" && <ProfileSettingsCard />}
 
-            <AuthStatusCard />
+            {section === "security" && <ChangePasswordCard />}
 
-            <SetPasswordCard />
+            {section === "preferences" && <div className="sr-only"><SettingsSyncBanner onSynced={applySyncedSettings} /></div>}
 
-            <ChangePasswordCard />
-
-            <SettingsSyncBanner onSynced={applySyncedSettings} />
-
-            <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            {section === "preferences" && <><section className="hidden">
                 <SettingsCard
                     icon={<Brain className="h-5 w-5" />}
                     eyebrow="LLM provider"
@@ -390,14 +334,14 @@ export function DatabaseSettingsPanel() {
                 </SettingsCard>
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+            <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
                 <SettingsCard
                     icon={<Sun className="h-5 w-5" />}
                     eyebrow="Appearance"
                     title="Theme"
                     description="Switch between professional light and dark mode."
                 >
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="flex flex-wrap gap-2">
                         <SelectableButton
                             selected={settings.theme === "dark"}
                             title="Dark"
@@ -422,7 +366,7 @@ export function DatabaseSettingsPanel() {
                     title="Agent preferences"
                     description="Control how the frontend presents the AI research experience."
                 >
-                    <div className="space-y-4">
+                    <div className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
                         <ToggleRow
                             title="Mock fallback safety"
                             description="Use fallback data when optional APIs are unavailable."
@@ -459,14 +403,14 @@ export function DatabaseSettingsPanel() {
                 </SettingsCard>
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+            <section>
                 <SettingsCard
                     icon={<Sparkles className="h-5 w-5" />}
                     eyebrow="Investor profile"
                     title="Risk profile"
                     description="Used to communicate how recommendations should be interpreted."
                 >
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="flex flex-wrap gap-2">
                         {(["Conservative", "Balanced", "Aggressive"] as UserRiskProfile[]).map(
                             (profile) => (
                                 <SelectableButton
@@ -487,24 +431,10 @@ export function DatabaseSettingsPanel() {
                     </div>
                 </SettingsCard>
 
-                <section className="rounded-[2.5rem] border border-emerald-400/20 bg-emerald-400/10 p-6 md:p-8">
-                    <div className="mb-4 flex items-center gap-2 text-emerald-600 dark:text-emerald-300">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <p className="font-black">SaaS-ready settings</p>
-                    </div>
-
-                    <h3 className="text-3xl font-black text-slate-950 dark:text-white">
-                        Preferences are now database-backed.
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
-                        This improves your project because logged-in users can have their
-                        own settings instead of only using localStorage.
-                    </p>
-                </section>
             </section>
+            </>}
 
-            <AccountDangerZone />
+            {section === "account" && <AccountDangerZone />}
         </div>
     );
 }
@@ -523,22 +453,22 @@ function SettingsCard({
     children: React.ReactNode;
 }) {
     return (
-        <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-8">
-            <div className="mb-6 flex gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-cyan-600 dark:bg-white/10 dark:text-cyan-300">
+        <section className="border-b border-slate-200 py-4 dark:border-white/10">
+            <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center text-slate-500 dark:text-slate-400">
                     {icon}
                 </div>
 
                 <div>
-                    <p className="mb-1 text-xs font-black uppercase tracking-[0.25em] text-cyan-600 dark:text-cyan-300">
+                    <p className="text-xs font-medium text-slate-400">
                         {eyebrow}
                     </p>
 
-                    <h3 className="text-2xl font-black text-slate-950 dark:text-white">
+                    <h3 className="text-base font-semibold text-slate-950 dark:text-white">
                         {title}
                     </h3>
 
-                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                    <p className="hidden">
                         {description}
                     </p>
                 </div>
@@ -565,31 +495,14 @@ function SelectableButton({
     return (
         <button
             onClick={onClick}
-            className={`rounded-[1.5rem] border p-5 text-left transition hover:-translate-y-0.5 ${selected
-                    ? "border-cyan-400/40 bg-cyan-400/10 shadow-xl shadow-cyan-500/10"
-                    : "border-slate-200 bg-slate-50 hover:bg-white dark:border-white/10 dark:bg-slate-950/60 dark:hover:bg-white/10"
+            className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-left text-sm font-medium transition ${selected
+                    ? "border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950"
+                    : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300"
                 }`}
         >
-            <div className="mb-4 flex items-center justify-between gap-3">
-                <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl ${selected
-                            ? "bg-cyan-500 text-white"
-                            : "bg-white text-slate-500 shadow-sm dark:bg-white/10 dark:text-slate-300"
-                        }`}
-                >
-                    {icon ?? <Sparkles className="h-5 w-5" />}
-                </div>
-
-                {selected && (
-                    <CheckCircle2 className="h-5 w-5 text-cyan-600 dark:text-cyan-300" />
-                )}
-            </div>
-
-            <p className="font-black text-slate-950 dark:text-white">{title}</p>
-
-            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                {description}
-            </p>
+            {icon}
+            <span>{title}</span>
+            {selected && <CheckCircle2 className="h-3.5 w-3.5" />}
         </button>
     );
 }
@@ -606,22 +519,21 @@ function ToggleRow({
     onChange: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between gap-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-slate-950/60">
+        <div className="flex items-center justify-between gap-5 py-3">
             <div>
-                <p className="font-black text-slate-950 dark:text-white">{title}</p>
+                <p className="text-sm font-medium text-slate-950 dark:text-white">{title}</p>
 
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                    {description}
-                </p>
+                <p className="hidden">{description}</p>
             </div>
 
             <button
                 onClick={onChange}
-                className={`relative h-8 w-14 shrink-0 rounded-full transition ${enabled ? "bg-cyan-500" : "bg-slate-300 dark:bg-white/20"
+                aria-label={`Toggle ${title}`}
+                className={`relative h-6 w-10 shrink-0 rounded-full transition ${enabled ? "bg-slate-950 dark:bg-white" : "bg-slate-300 dark:bg-white/20"
                     }`}
             >
                 <span
-                    className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${enabled ? "left-7" : "left-1"
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition dark:bg-slate-950 ${enabled ? "left-5" : "left-1"
                         }`}
                 />
             </button>
@@ -636,3 +548,12 @@ function Label({ children }: { children: React.ReactNode }) {
         </p>
     );
 }
+
+type SettingsSection = "profile" | "security" | "preferences" | "account";
+
+const settingsSections: { id: SettingsSection; label: string; icon: typeof Settings }[] = [
+    { id: "profile", label: "Profile", icon: UserRound },
+    { id: "security", label: "Security", icon: ShieldCheck },
+    { id: "preferences", label: "Research preferences", icon: SlidersHorizontal },
+    { id: "account", label: "Account", icon: Lock },
+];

@@ -88,58 +88,30 @@ export function AccountDangerZone() {
         }
     }
 
-    if (loading) {
-        return (
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-8">
-                <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-white dark:bg-white dark:text-slate-950">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-
-                    <div>
-                        <h3 className="text-2xl font-black text-slate-950 dark:text-white">
-                            Loading account security
-                        </h3>
-
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                            Fetching account usage and provider details.
-                        </p>
-                    </div>
-                </div>
-            </section>
-        );
-    }
-
     if (!loggedIn) {
         return null;
     }
 
     return (
-        <section className="rounded-[2.5rem] border border-red-400/20 bg-red-400/10 p-6 md:p-8">
-            <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <section className="max-w-2xl border-b border-red-300 pb-6 dark:border-red-400/20">
+            <div className="mb-5 flex gap-3">
                 <div className="flex gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-500 text-white shadow-xl shadow-red-500/20">
-                        <ShieldAlert className="h-7 w-7" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-white">
+                        <ShieldAlert className="h-4 w-4" />
                     </div>
 
                     <div>
-                        <p className="mb-2 text-sm font-black uppercase tracking-[0.25em] text-red-600 dark:text-red-300">
-                            Danger Zone
-                        </p>
-
-                        <h3 className="text-3xl font-black text-slate-950 dark:text-white">
-                            Delete account permanently
+                        <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
+                            Delete account
                         </h3>
 
-                        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-700 dark:text-slate-300">
-                            This action deletes your account and all linked workspace data,
-                            including settings, watchlist items, research history, exports,
-                            sessions, OAuth accounts, and OTP records.
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Permanently remove your account and all workspace data.
                         </p>
                     </div>
                 </div>
 
-                <div className="rounded-[1.75rem] border border-red-400/20 bg-white/60 p-5 dark:bg-white/10">
+                <div className="hidden">
                     <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-300">
                         Account Summary
                     </p>
@@ -165,8 +137,8 @@ export function AccountDangerZone() {
                 </div>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-                <div className="rounded-[2rem] border border-red-400/20 bg-white/70 p-5 dark:bg-slate-950/40">
+            <div>
+                <div className="hidden">
                     <div className="mb-4 flex items-center gap-3 text-red-600 dark:text-red-300">
                         <AlertTriangle className="h-5 w-5" />
                         <p className="font-black">What will be deleted?</p>
@@ -185,7 +157,7 @@ export function AccountDangerZone() {
                     </div>
                 </div>
 
-                <div className="rounded-[2rem] border border-red-400/20 bg-white/70 p-5 dark:bg-slate-950/40">
+                <div>
                     <label className="mb-2 block text-sm font-black text-slate-700 dark:text-slate-300">
                         Type DELETE_MY_ACCOUNT to confirm
                     </label>
@@ -197,7 +169,7 @@ export function AccountDangerZone() {
                             setError("");
                         }}
                         placeholder="DELETE_MY_ACCOUNT"
-                        className="h-14 w-full rounded-2xl border border-red-400/20 bg-white px-4 text-sm font-black text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-red-400 dark:bg-slate-950/60 dark:text-white"
+                        className="h-10 w-full rounded-lg border border-red-300 bg-transparent px-3 text-sm font-medium text-slate-950 outline-none focus:border-red-500 dark:border-red-400/20 dark:text-white"
                     />
 
                     {requiresPassword && (
@@ -206,7 +178,7 @@ export function AccountDangerZone() {
                                 Password
                             </label>
 
-                            <div className="flex h-14 items-center gap-3 rounded-2xl border border-red-400/20 bg-white px-4 dark:bg-slate-950/60">
+                            <div className="flex h-10 items-center gap-3 rounded-lg border border-red-300 px-3 dark:border-red-400/20">
                                 <Lock className="h-5 w-5 text-slate-400" />
 
                                 <input
@@ -232,7 +204,7 @@ export function AccountDangerZone() {
                     <button
                         onClick={() => void handleDeleteAccount()}
                         disabled={!canDelete || deleting}
-                        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-4 text-sm font-black text-white shadow-xl shadow-red-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-medium text-white disabled:opacity-50"
                     >
                         {deleting ? (
                             <>
