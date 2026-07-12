@@ -44,22 +44,28 @@ function normalizeExchange(region?: string): string {
   return region.toUpperCase();
 }
 
-function validateSearchResponse(data: AlphaVantageSearchResponse) {
+function validateSearchResponse(data: AlphaVantageSearchResponse): boolean {
   if (data.Note) {
-    throw new Error(`Alpha Vantage rate limit or note: ${data.Note}`);
+    console.warn(`Alpha Vantage rate limit or note: ${data.Note}`);
+    return false;
   }
 
   if (data.Information) {
-    throw new Error(`Alpha Vantage information: ${data.Information}`);
+    console.warn(`Alpha Vantage information: ${data.Information}`);
+    return false;
   }
 
   if (data["Error Message"]) {
-    throw new Error(`Alpha Vantage error: ${data["Error Message"]}`);
+    console.warn(`Alpha Vantage error: ${data["Error Message"]}`);
+    return false;
   }
 
   if (!Array.isArray(data.bestMatches)) {
-    throw new Error("Alpha Vantage returned invalid symbol search response.");
+    console.warn("Alpha Vantage returned invalid symbol search response.");
+    return false;
   }
+
+  return true;
 }
 
 export async function searchCompanySymbol(
@@ -92,7 +98,8 @@ export async function searchCompanySymbol(
 
   const data = (await response.json()) as AlphaVantageSearchResponse;
 
-  validateSearchResponse(data);
+  const isValid = validateSearchResponse(data);
+  if (!isValid) return [];
 
   return data.bestMatches!
     .filter((item) => {
@@ -107,8 +114,10 @@ export async function searchCompanySymbol(
         symbol: item["1. symbol"]!,
         name: item["2. name"]!,
         exchange: normalizeExchange(item["4. region"]),
-        country: item["4. region"],
-        currency: item["8. currency"],
+        sector: "UNKNOWN",
+        industry: "UNKNOWN",
+        country: item["4. region"] || "UNKNOWN",
+        currency: item["8. currency"] || "USD",
       },
       matchScore: parseMatchScore(item["9. matchScore"]),
     }))
