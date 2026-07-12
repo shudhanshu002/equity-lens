@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { compareCompanies, researchCompany } from "@/lib/api-client";
 import type { ComparisonApiResponse } from "@/lib/api-client";
 import type { InvestmentResearchReport } from "@/lib/types/research";
@@ -13,6 +13,7 @@ import { ReportView } from "@/components/research/report-view";
 import { CompareView } from "@/components/research/compare-view";
 import { RecentHistory } from "@/components/research/recent-history";
 import { ExportsCenter } from "@/components/research/exports-center";
+import { SectorResearchView } from "@/components/research/sector-research-view";
 import { AppFooter } from "@/components/research/app-footer";
 import {
   BarChart3,
@@ -20,6 +21,9 @@ import {
   Database,
   FileText,
   GitBranch,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
   Search,
   ShieldCheck,
   Sparkles,
@@ -33,7 +37,6 @@ import { useSession } from "next-auth/react";
 import { HistorySaveToast } from "@/components/research/history-save-toast";
 import { autoSaveComparisonHistory, autoSaveResearchHistory, type AutoSaveHistoryResult } from "@/lib/user-data/auto-save-history";
 import { DatabaseExportsCenter } from "@/components/research/database-exports-center";
-import { UserDashboardSummary } from "@/components/research/user-dashboard-summary";
 import { AuthGuardCard } from "@/components/auth/auth-guard-card";
 import { RequireAuthWrapper } from "@/components/auth/require-auth-wrapper";
 import { AuthRequiredInline } from "@/components/auth/auth-required-inline";
@@ -53,84 +56,176 @@ export default function Home() {
     return getInitialTab(new URLSearchParams(window.location.search).get("tab"));
   });
 
-  const [company, setCompany] = useState("Nvidia");
-  const [companies, setCompanies] = useState("Nvidia, Tesla, Netflix");
+  const [company, setCompany] = useState("");
+  const [researchQuery, setResearchQuery] = useState("");
+  const [researchDuration, setResearchDuration] = useState(0);
+  const [companies, setCompanies] = useState("");
+  const [compareQuery, setCompareQuery] = useState("");
+  const [compareDuration, setCompareDuration] = useState(0);
 
   const [report, setReport] = useState<InvestmentResearchReport | null>(null);
   const [comparison, setComparison] =
     useState<ComparisonApiResponse["data"]>(undefined);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [turns, setTurns] = useState<Array<{
+    query: string;
+    report?: InvestmentResearchReport;
+    sectorResult?: any;
+    followUpResult?: any;
+    duration?: number;
+  }>>([]);
 
-  async function handleResearch() {
-    const cleanedCompany = company.trim();
+  async function runUniversalQuery(query: string, startedAt: number) {
+    const response = await fetch("/api/intelligence", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        currentReport: report ?? undefined,
+        currentCompare: comparison ?? undefined,
+      }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json.success) {
+      throw new Error(json.error ?? "Request failed.");
+    }
+
+    if (json.intent === "SINGLE_COMPANY_RESEARCH") {
+      setReport(json.data);
+      setComparison(undefined);
+      setActiveTab("research");
+      setTurns((current) => [
+        ...current.filter((turn) => !turn.sectorResult && !turn.followUpResult),
+        {
+          query,
+          report: json.data,
+          duration: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+        },
+      ]);
+
+      const saveResult = await autoSaveResearchHistory(json.data, {
+        loggedIn,
+        enableLocalFallback: true,
+      });
+      setHistorySaveResult(saveResult);
+      return;
+    }
+
+    if (json.intent === "COMPANY_COMPARISON") {
+      setComparison(json.data);
+      setReport(null);
+      setActiveTab("compare");
+
+      const saveResult = await autoSaveComparisonHistory(json.data, {
+        loggedIn,
+        enableLocalFallback: true,
+      });
+      setHistorySaveResult(saveResult);
+      return;
+    }
+
+    if (json.intent === "SECTOR_RESEARCH") {
+      setReport(null);
+      setComparison(undefined);
+      setActiveTab("research");
+      setTurns((current) => [
+        ...current.filter((turn) => !turn.report),
+        {
+          query,
+          sectorResult: json.data,
+        },
+      ]);
+      return;
+    }
+
+    if (json.intent === "FOLLOW_COMPANY") {
+      if (json.data?.company) {
+        const target = json.data.company;
+        const syncResponse = await fetch("/api/user/watchlist/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: [{
+              company: target.name,
+              symbol: target.symbol,
+              thesis: `Followed from EquityLens research commands.`,
+              status: "Watchlist",
+              score: 50,
+              risk: "Medium",
+            }],
+          }),
+        }).catch(() => null);
+
+        if (!syncResponse?.ok && typeof window !== "undefined") {
+          const key = "equitylens_followed_companies";
+          let existing: any[] = [];
+          try { existing = JSON.parse(localStorage.getItem(key) ?? "[]"); } catch { existing = []; }
+          const item = { ...target, followedAt: new Date().toISOString() };
+          localStorage.setItem(key, JSON.stringify([item, ...existing.filter((old) => old.symbol !== target.symbol)]));
+        }
+      }
+      setActiveTab("portfolio");
+      return;
+    }
+
+    // follow-up response
+    setTurns((current) => [
+      ...current,
+      {
+        query,
+        followUpResult: json.data,
+      },
+    ]);
+  }
+
+  async function handleResearch(customCompany?: string) {
+    const cleanedCompany = (customCompany ?? company).trim();
+    const startedAt = Date.now();
 
     if (!cleanedCompany || loading) return;
 
     setError("");
     setLoading(true);
-    setComparison(undefined);
+    setResearchQuery(cleanedCompany);
+    setResearchDuration(0);
+    setCompany("");
 
     try {
-      const response = await researchCompany(cleanedCompany);
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error ?? "Failed to run research.");
-      }
-
-      setReport(response.data);
-      setActiveTab("research");
-
-      const saveResult = await autoSaveResearchHistory(response.data, {
-        loggedIn,
-        enableLocalFallback: true,
-      });
-
-      setHistorySaveResult(saveResult);
+      await runUniversalQuery(cleanedCompany, startedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
+      setResearchDuration(Math.max(1, Math.round((Date.now() - startedAt) / 1000)));
       setLoading(false);
     }
   }
 
-  async function handleCompare() {
+  async function handleCompare(customCompanies?: string) {
+    const startedAt = Date.now();
     if (loading) return;
 
-    const parsedCompanies = companies
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    if (parsedCompanies.length < 2) {
-      setError("Please enter at least two companies separated by commas.");
-      return;
-    }
+    const cleanedCompare = (customCompanies ?? companies).trim();
+    if (!cleanedCompare) return;
 
     setError("");
     setLoading(true);
-    setReport(null);
+    setCompareQuery(cleanedCompare);
+    setCompareDuration(0);
+    setCompanies("");
 
     try {
-      const response = await compareCompanies(parsedCompanies);
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error ?? "Failed to compare companies.");
-      }
-
-      setComparison(response.data);
-      setActiveTab("compare");
-
-      const saveResult = await autoSaveComparisonHistory(response.data, {
-        loggedIn,
-        enableLocalFallback: true,
-      });
-
-      setHistorySaveResult(saveResult);
+      // The compare workspace accepts a bare comma-separated list. Make the
+      // intent explicit so it can never fall through to company research.
+      await runUniversalQuery(`Compare ${cleanedCompare}`, startedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
+      setCompareDuration(Math.max(1, Math.round((Date.now() - startedAt) / 1000)));
       setLoading(false);
     }
   }
@@ -146,68 +241,85 @@ export default function Home() {
   return (
     <NavbarAppShell activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === "home" && (
-        <div className="space-y-16">
+        <div className="space-y-8">
           <PremiumHomePage
             onTabChange={setActiveTab}
             onPickResearch={pickResearch}
             onPickCompare={pickCompare}
           />
-
-          <UserDashboardSummary
-            onTabChange={setActiveTab}
-            onPickResearch={pickResearch}
-          />
         </div>
       )}
 
       {activeTab === "research" && (
-        <ResearchWorkspace
-          company={company}
-          setCompany={setCompany}
-          companies={companies}
-          setCompanies={setCompanies}
-          loading={loading}
-          error={error}
-          report={report}
-          comparison={comparison}
-          onResearch={handleResearch}
-          onCompare={handleCompare}
-          onOpenReport={(savedReport) => {
-            setComparison(undefined);
-            setReport(savedReport);
-            setActiveTab("research");
-          }}
-          onOpenComparison={(savedComparison) => {
-            setReport(null);
-            setComparison(savedComparison);
-            setActiveTab("compare");
-          }}
-        />
+        <div className="space-y-8">
+          <ResearchWorkspace
+            company={company}
+            researchQuery={researchQuery}
+            researchDuration={researchDuration}
+            setCompany={setCompany}
+            companies={companies}
+            setCompanies={setCompanies}
+            loading={loading}
+            error={error}
+            report={report}
+            comparison={comparison}
+            onResearch={handleResearch}
+            onCompare={handleCompare}
+            onNewChat={() => {
+              setCompany("");
+              setReport(null);
+              setComparison(undefined);
+              setError("");
+            }}
+            onOpenReport={(savedReport) => {
+              setComparison(undefined);
+              setReport(savedReport);
+              setActiveTab("research");
+            }}
+            onOpenComparison={(savedComparison) => {
+              setReport(null);
+              setComparison(savedComparison);
+              setActiveTab("compare");
+            }}
+            turns={turns}
+            setTurns={setTurns}
+          />
+        </div>
       )}
 
       {activeTab === "compare" && (
-        <CompareWorkspace
-          company={company}
-          setCompany={setCompany}
-          companies={companies}
-          setCompanies={setCompanies}
-          loading={loading}
-          error={error}
-          report={report}
-          comparison={comparison}
-          onResearch={handleResearch}
-          onCompare={handleCompare}
-          onOpenReport={(savedReport) => {
-            setComparison(undefined);
-            setReport(savedReport);
-            setActiveTab("research");
-          }}
-          onOpenComparison={(savedComparison) => {
-            setReport(null);
-            setComparison(savedComparison);
-            setActiveTab("compare");
-          }}
-        />
+        <div className="space-y-8">
+          <CompareWorkspace
+            company={company}
+            setCompany={setCompany}
+            companies={companies}
+            compareQuery={compareQuery}
+            compareDuration={compareDuration}
+            setCompanies={setCompanies}
+            loading={loading}
+            error={error}
+            report={report}
+            comparison={comparison}
+            onResearch={handleResearch}
+            onCompare={handleCompare}
+            onNewChat={() => {
+              setCompanies("");
+              setComparison(undefined);
+              setReport(null);
+              setError("");
+            }}
+            onOpenReport={(savedReport) => {
+              setComparison(undefined);
+              setReport(savedReport);
+              setActiveTab("research");
+            }}
+            onOpenComparison={(savedComparison) => {
+              setReport(null);
+              setComparison(savedComparison);
+              setActiveTab("compare");
+            }}
+          />
+        </div>
       )}
 
       {activeTab === "history" && (
@@ -226,11 +338,11 @@ export default function Home() {
       )}
 
       {activeTab === "portfolio" && (
-        <DatabasePortfolioWatchlist
-          onTabChange={setActiveTab}
-          onPickResearch={pickResearch}
-          onPickCompare={pickCompare}
-        />
+          <DatabasePortfolioWatchlist
+            onTabChange={setActiveTab}
+            onPickResearch={pickResearch}
+            onPickCompare={pickCompare}
+          />
       )}
 
       {activeTab === "exports" && (
@@ -247,7 +359,11 @@ export default function Home() {
 
       {activeTab === "settings" && <DatabaseSettingsPanel />}
 
-      <AppFooter />
+      {activeTab !== "research" &&
+        activeTab !== "compare" &&
+        activeTab !== "portfolio" &&
+        activeTab !== "exports" &&
+        activeTab !== "settings" && <AppFooter />}
 
       <HistorySaveToast
         result={historySaveResult}
@@ -274,6 +390,8 @@ function getInitialTab(tab: string | null): AppTab {
 
 function ResearchWorkspace({
   company,
+  researchQuery,
+  researchDuration,
   setCompany,
   companies,
   setCompanies,
@@ -283,10 +401,15 @@ function ResearchWorkspace({
   comparison,
   onResearch,
   onCompare,
+  onNewChat,
   onOpenReport,
   onOpenComparison,
+  turns,
+  setTurns,
 }: {
   company: string;
+  researchQuery: string;
+  researchDuration: number;
   setCompany: React.Dispatch<React.SetStateAction<string>>;
   companies: string;
   setCompanies: React.Dispatch<React.SetStateAction<string>>;
@@ -294,61 +417,327 @@ function ResearchWorkspace({
   error: string;
   report: InvestmentResearchReport | null;
   comparison: ComparisonApiResponse["data"] | undefined;
-  onResearch: () => void;
+  onResearch: (customCompany?: string) => void;
   onCompare: () => void;
+  onNewChat: () => void;
   onOpenReport: (report: InvestmentResearchReport) => void;
   onOpenComparison: (comparison: NonNullable<ComparisonApiResponse["data"]>) => void;
+  turns: Array<{
+    query: string;
+    report?: InvestmentResearchReport;
+    sectorResult?: any;
+    followUpResult?: any;
+    duration?: number;
+  }>;
+  setTurns: React.Dispatch<React.SetStateAction<Array<{
+    query: string;
+    report?: InvestmentResearchReport;
+    sectorResult?: any;
+    followUpResult?: any;
+    duration?: number;
+  }>>>;
 }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [conversationId, setConversationId] = useState(() => createConversationId());
+  const chatViewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const selector = loading ? "[data-pending-turn]" : "[data-chat-turn]";
+    const frame = window.requestAnimationFrame(() => {
+      const nodes = chatViewportRef.current?.querySelectorAll<HTMLElement>(selector);
+      nodes?.[nodes.length - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, turns.length]);
+
   return (
-    <div className="space-y-8">
-      <ConversationalResearchPanel
-        variant="research"
-        company={company}
-        setCompany={setCompany}
-        companies={companies}
-        setCompanies={setCompanies}
-        loading={loading}
-        error={error}
-        onResearch={onResearch}
-        onCompare={onCompare}
-      />
+    <div className="relative -mt-1">
+      <button
+        type="button"
+        onClick={() => setHistoryOpen((open) => !open)}
+        className="absolute -left-2 top-14 z-20 inline-flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white sm:-left-4 lg:-left-6"
+      >
+        {historyOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        {historyOpen ? "Close history" : "Open history"}
+      </button>
 
-      <SystemStatus />
-
-      {loading && (
-        <>
-          <AgentProgressTimeline loading={loading} variant="research" />
-          <AgentGraphVisualization loading={loading} variant="research" />
-        </>
-      )}
-
-      {!loading && !report && <ResearchStarter />}
-
-      {!loading && report && (
-        <>
-          <AgentGraphVisualization loading={false} variant="research" />
-          <AuthRequiredInline
-            title="Login to save this report."
-            description="You can still run research, but saving to database requires login."
+      <div
+        className={`fixed inset-0 z-[60] transition ${historyOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+        aria-hidden={!historyOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close history"
+          onClick={() => setHistoryOpen(false)}
+          className={`absolute inset-0 bg-slate-950/25 backdrop-blur-[1px] transition-opacity duration-300 lg:bg-transparent lg:backdrop-blur-none ${historyOpen ? "opacity-100" : "opacity-0"}`}
+        />
+        <div className={`absolute left-0 top-0 h-full w-[290px] border-r border-slate-200 bg-slate-50 p-3 shadow-2xl transition-transform duration-300 ease-out dark:border-white/10 dark:bg-slate-950 ${historyOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="mb-3 flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setConversationId(createConversationId());
+                setTurns([]);
+                onNewChat();
+                setHistoryOpen(false);
+              }}
+              className="inline-flex h-10 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            >
+              <Plus className="h-4 w-4" />
+              New chat
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(false)}
+              aria-label="Close history"
+              title="Close history"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200 dark:hover:bg-white/10"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          </div>
+          <RecentHistory
+            compact
+            conversationId={conversationId}
+            onConversationSelect={setConversationId}
+            currentReport={report}
+            currentComparison={comparison}
+            onOpenReport={(savedReport) => {
+              setTurns([{ query: savedReport.company.name, report: savedReport, duration: 0 }]);
+              onOpenReport(savedReport);
+              setHistoryOpen(false);
+            }}
+            onOpenComparison={(savedComparison) => {
+              onOpenComparison(savedComparison);
+              setHistoryOpen(false);
+            }}
           />
-          <ReportView report={report} />
-        </>
-      )}
+        </div>
+      </div>
 
-      <RecentHistory
-        currentReport={report}
-        currentComparison={comparison}
-        onOpenReport={onOpenReport}
-        onOpenComparison={onOpenComparison}
-      />
+      <div className="min-w-0">
+        {!loading && turns.length === 0 && !report && (
+          <div className="space-y-8">
+          <ConversationalResearchPanel
+            variant="research"
+            company={company}
+            setCompany={setCompany}
+            companies={companies}
+            setCompanies={setCompanies}
+            loading={loading}
+            error={error}
+            onResearch={onResearch}
+            onCompare={onCompare}
+          />
+          </div>
+        )}
+
+        {(loading || turns.length > 0 || report) && (
+          <div ref={chatViewportRef} className="mx-auto max-w-5xl pb-8">
+            {turns.map((turn, index) => {
+              if (turn.report) {
+                return (
+                  <ResearchChatTurn
+                    key={`report-${index}`}
+                    query={turn.query}
+                    report={turn.report}
+                    duration={turn.duration ?? 0}
+                  />
+                );
+              }
+              if (turn.sectorResult) {
+                return (
+                  <div key={`sector-${index}`} data-chat-turn className="mb-12 scroll-mt-24">
+                    <div className="mb-8 flex justify-end">
+                      <div className="max-w-[80%] rounded-2xl rounded-br-md bg-slate-200 px-4 py-3 text-sm font-medium text-slate-900 dark:bg-white/10 dark:text-white">
+                        Analyze {turn.query}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white dark:bg-white dark:text-slate-950 sm:h-10 sm:w-10">EL</div>
+                      <div className="chat-response-reveal min-w-0 space-y-7">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-950 dark:text-white">EquityLens</p>
+                          <p className="text-xs text-slate-500">Sector analysis ready.</p>
+                        </div>
+                        <SectorResearchView
+                          query={turn.query}
+                          result={turn.sectorResult}
+                          onSelectCompany={(selected) => {
+                            onResearch(selected);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (turn.followUpResult) {
+                const followUp = turn.followUpResult;
+                return (
+                  <div key={`follow-${index}`} data-chat-turn className="mb-12 scroll-mt-24">
+                    <div className="mb-8 flex justify-end">
+                      <div className="max-w-[80%] rounded-2xl rounded-br-md bg-slate-200 px-4 py-3 text-sm font-medium text-slate-900 dark:bg-white/10 dark:text-white">
+                        {turn.query}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white dark:bg-white dark:text-slate-950 sm:h-10 sm:w-10">EL</div>
+                      <div className="chat-response-reveal min-w-0 space-y-7">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-950 dark:text-white">EquityLens</p>
+                          <p className="text-xs text-slate-500">Follow-up response generated.</p>
+                        </div>
+                        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.02]">
+                          <div className="flex flex-wrap gap-2">
+                            <FollowUpBadge label={followUp.intent} />
+                            <FollowUpBadge label={followUp.answer.sentiment} />
+                            <FollowUpBadge label={formatFollowUpImpact(followUp.answer.decisionImpact)} />
+                          </div>
+                          <p className="mt-5 whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-200">
+                            {followUp.answer.answer}
+                          </p>
+                          {followUp.answer.keyPoints?.length ? (
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/10">
+                              <p className="text-sm font-black text-slate-950 dark:text-white">Key Points</p>
+                              <ul className="mt-2 space-y-2">
+                                {followUp.answer.keyPoints.map((point: string) => (
+                                  <li key={point} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                                    <span>{point}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                          {followUp.sources?.length ? (
+                            <div className="mt-5 border-t border-slate-100 pt-5 dark:border-white/10">
+                              <p className="text-sm font-black text-slate-950 dark:text-white">Sources</p>
+                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                {followUp.sources.slice(0, 4).map((source: any, sourceIndex: number) => (
+                                  <a key={`${source.title}-${sourceIndex}`} href={source.url || undefined} target={source.url ? "_blank" : undefined} rel={source.url ? "noreferrer" : undefined} className={`rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5 ${source.url ? "transition hover:border-emerald-300" : "pointer-events-none"}`}>
+                                    <p className="line-clamp-2 text-xs font-bold text-slate-800 dark:text-slate-100">{source.title}</p>
+                                    <p className="mt-1 text-[11px] text-slate-500">{source.source}{source.publishedAt ? ` · ${source.publishedAt}` : ""}</p>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          {followUp.answer.followUpQuestions?.length ? (
+                            <div className="mt-5 border-t border-slate-100 pt-5 dark:border-white/10">
+                              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Good questions to ask next</p>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {followUp.answer.followUpQuestions.map((question: string) => (
+                                  <button key={question} type="button" onClick={() => setCompany(question)} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white">
+                                    {question}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })}
+
+            {loading && (
+              <div data-pending-turn className="mb-10 scroll-mt-24">
+                <div className="mb-8 flex justify-end">
+                  <div className="max-w-[80%] rounded-2xl rounded-br-md bg-slate-200 px-4 py-3 text-sm font-medium text-slate-900 dark:bg-white/10 dark:text-white">
+                    Analyze {researchQuery}
+                  </div>
+                </div>
+                <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white dark:bg-white dark:text-slate-950 sm:h-10 sm:w-10">EL</div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-950 dark:text-white">EquityLens</p>
+                    <AgentProgressTimeline loading={loading} variant="research" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="sticky bottom-4 z-20 bg-slate-50/90 py-2 backdrop-blur-xl dark:bg-slate-950/90">
+              <ConversationalResearchPanel
+                variant="research"
+                conversationActive
+                contextCompany={report?.company.name}
+                company={company}
+                setCompany={setCompany}
+                companies={companies}
+                setCompanies={setCompanies}
+                loading={loading}
+                error={error}
+                onResearch={onResearch}
+                onCompare={onCompare}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function ResearchChatTurn({ query, report, duration }: { query: string; report: InvestmentResearchReport; duration: number }) {
+  return (
+    <div data-chat-turn className="mb-12 scroll-mt-24">
+      <div className="mb-8 flex justify-end">
+        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-slate-200 px-4 py-3 text-sm font-medium text-slate-900 dark:bg-white/10 dark:text-white">
+          Analyze {query}
+        </div>
+      </div>
+      <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white dark:bg-white dark:text-slate-950 sm:h-10 sm:w-10">EL</div>
+        <div className="chat-response-reveal min-w-0 space-y-7">
+          <div>
+            <p className="text-sm font-semibold text-slate-950 dark:text-white">EquityLens</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+              <span>Research completed for {report.company.name}.</span>
+              {duration > 0 && <span className="font-mono text-xs">Worked for {formatResearchDuration(duration)}</span>}
+            </div>
+          </div>
+          <AgentGraphVisualization mode="research" company={report.company.name} trace={report.metadata.trace ?? []} isRunning={false} />
+          <AuthRequiredInline title="Login to save this report." description="You can still run research, but saving to database requires login." />
+          <ReportView report={report} compact />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FollowUpBadge({ label }: { label?: string }) {
+  if (!label) return null;
+  return <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">{label.replaceAll("_", " ")}</span>;
+}
+
+function formatFollowUpImpact(value?: string) {
+  if (value === "IMPROVES_CASE") return "Improves case";
+  if (value === "WEAKENS_CASE") return "Weakens case";
+  if (value === "NO_MAJOR_CHANGE") return "No major change";
+  return "Insufficient data";
+}
+
+function formatResearchDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function createConversationId() {
+  return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function CompareWorkspace({
   company,
   setCompany,
   companies,
+  compareQuery,
+  compareDuration,
   setCompanies,
   loading,
   error,
@@ -356,12 +745,15 @@ function CompareWorkspace({
   comparison,
   onResearch,
   onCompare,
+  onNewChat,
   onOpenReport,
   onOpenComparison,
 }: {
   company: string;
   setCompany: React.Dispatch<React.SetStateAction<string>>;
   companies: string;
+  compareQuery: string;
+  compareDuration: number;
   setCompanies: React.Dispatch<React.SetStateAction<string>>;
   loading: boolean;
   error: string;
@@ -369,51 +761,86 @@ function CompareWorkspace({
   comparison: ComparisonApiResponse["data"] | undefined;
   onResearch: () => void;
   onCompare: () => void;
+  onNewChat: () => void;
   onOpenReport: (report: InvestmentResearchReport) => void;
   onOpenComparison: (comparison: NonNullable<ComparisonApiResponse["data"]>) => void;
 }) {
+  type ComparisonData = NonNullable<ComparisonApiResponse["data"]>;
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [conversationId, setConversationId] = useState(() => createConversationId());
+  const [turns, setTurns] = useState<Array<{ query: string; comparison: ComparisonData; duration: number }>>([]);
+  const chatViewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!comparison || loading) return;
+    setTurns((current) => {
+      if (current.some((turn) => turn.comparison.metadata.generatedAt === comparison.metadata.generatedAt)) return current;
+      return [...current, { query: compareQuery || comparison.companies.map((item) => item.company.name).join(", "), comparison, duration: compareDuration }];
+    });
+  }, [compareDuration, compareQuery, comparison, loading]);
+
+  useEffect(() => {
+    const selector = loading ? "[data-pending-turn]" : "[data-chat-turn]";
+    const frame = window.requestAnimationFrame(() => {
+      const nodes = chatViewportRef.current?.querySelectorAll<HTMLElement>(selector);
+      nodes?.[nodes.length - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, turns.length]);
+
   return (
-    <div className="space-y-8">
-      <ConversationalResearchPanel
-        variant="compare"
-        company={company}
-        setCompany={setCompany}
-        companies={companies}
-        setCompanies={setCompanies}
-        loading={loading}
-        error={error}
-        onResearch={onResearch}
-        onCompare={onCompare}
-      />
+    <div className="relative -mt-1">
+      <button type="button" onClick={() => setHistoryOpen((open) => !open)} className="absolute -left-2 top-14 z-20 inline-flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white sm:-left-4 lg:-left-6">
+        {historyOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        {historyOpen ? "Close history" : "Open history"}
+      </button>
 
-      <SystemStatus />
+      <div className={`fixed inset-0 z-[60] transition ${historyOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!historyOpen}>
+        <button type="button" aria-label="Close history" onClick={() => setHistoryOpen(false)} className={`absolute inset-0 bg-slate-950/25 backdrop-blur-[1px] transition-opacity duration-300 lg:bg-transparent lg:backdrop-blur-none ${historyOpen ? "opacity-100" : "opacity-0"}`} />
+        <div className={`absolute left-0 top-0 h-full w-[290px] border-r border-slate-200 bg-slate-50 p-3 shadow-2xl transition-transform duration-300 ease-out dark:border-white/10 dark:bg-slate-950 ${historyOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="mb-3 flex items-center gap-2 pt-1">
+            <button type="button" onClick={() => { setConversationId(createConversationId()); setTurns([]); onNewChat(); setHistoryOpen(false); }} className="inline-flex h-10 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+              <Plus className="h-4 w-4" /> New chat
+            </button>
+            <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close history" className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200 dark:hover:bg-white/10"><PanelLeftClose className="h-4 w-4" /></button>
+          </div>
+          <RecentHistory compact conversationId={conversationId} onConversationSelect={setConversationId} currentReport={report} currentComparison={comparison} onOpenReport={onOpenReport} onOpenComparison={(savedComparison) => { setTurns([{ query: savedComparison.companies.map((item) => item.company.name).join(", "), comparison: savedComparison, duration: 0 }]); onOpenComparison(savedComparison); setHistoryOpen(false); }} />
+        </div>
+      </div>
 
-      {loading && (
-        <>
-          <AgentProgressTimeline loading={loading} variant="compare" />
-          <AgentGraphVisualization loading={loading} variant="compare" />
-        </>
+      {!loading && turns.length === 0 && !comparison && (
+        <div className="space-y-8">
+          <ConversationalResearchPanel variant="compare" company={company} setCompany={setCompany} companies={companies} setCompanies={setCompanies} loading={loading} error={error} onResearch={onResearch} onCompare={onCompare} />
+        </div>
       )}
 
-      {!loading && !comparison && <CompareStarter />}
-
-      {!loading && comparison && (
-        <>
-          <AgentGraphVisualization loading={false} variant="compare" />
-          <AuthRequiredInline
-            title="Login to save this comparison."
-            description="You can still run comparison, but saving to database requires login."
-          />
-          <CompareView comparison={comparison} />
-        </>
+      {(loading || turns.length > 0 || comparison) && (
+        <div ref={chatViewportRef} className="mx-auto max-w-5xl pb-8">
+          {turns.map((turn) => <CompareChatTurn key={turn.comparison.metadata.generatedAt} query={turn.query} comparison={turn.comparison} duration={turn.duration} />)}
+          {loading && (
+            <div data-pending-turn className="mb-10 scroll-mt-24">
+              <div className="mb-8 flex justify-end"><div className="max-w-[80%] rounded-2xl rounded-br-md bg-slate-200 px-4 py-3 text-sm font-medium text-slate-900 dark:bg-white/10 dark:text-white">Compare {compareQuery}</div></div>
+              <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-4"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white dark:bg-white dark:text-slate-950 sm:h-10 sm:w-10">EL</div><div className="min-w-0"><p className="text-sm font-semibold text-slate-950 dark:text-white">EquityLens</p><AgentProgressTimeline loading={loading} variant="compare" /></div></div>
+            </div>
+          )}
+        </div>
       )}
+    </div>
+  );
+}
 
-      <RecentHistory
-        currentReport={report}
-        currentComparison={comparison}
-        onOpenReport={onOpenReport}
-        onOpenComparison={onOpenComparison}
-      />
+function CompareChatTurn({ query, comparison, duration }: { query: string; comparison: NonNullable<ComparisonApiResponse["data"]>; duration: number }) {
+  return (
+    <div data-chat-turn className="mb-12 scroll-mt-24">
+      <div className="mb-8 flex justify-end"><div className="max-w-[80%] rounded-2xl rounded-br-md bg-slate-200 px-4 py-3 text-sm font-medium text-slate-900 dark:bg-white/10 dark:text-white">Compare {query}</div></div>
+      <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white dark:bg-white dark:text-slate-950 sm:h-10 sm:w-10">EL</div>
+        <div className="chat-response-reveal min-w-0 space-y-7">
+          <div><p className="text-sm font-semibold text-slate-950 dark:text-white">EquityLens</p><div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400"><span>Comparison completed.</span>{duration > 0 && <span className="font-mono text-xs">Worked for {formatResearchDuration(duration)}</span>}</div></div>
+          <AuthRequiredInline title="Login to save this comparison." description="You can still compare companies, but saving to database requires login." />
+          <CompareView comparison={comparison} compact />
+        </div>
+      </div>
     </div>
   );
 }
