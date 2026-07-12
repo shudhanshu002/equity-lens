@@ -10,7 +10,7 @@ It is designed to make research easier to follow—not to hide everything behind
 
 > **Important:** EquityLens is an educational research tool, not a financial adviser. Provider data can be delayed, incomplete, or unavailable. Always verify important figures before making an investment decision.
 
-## What you can do
+## Overview - what it does
 
 - Research public companies using natural-language prompts.
 - Compare up to four companies in a single report.
@@ -24,7 +24,7 @@ It is designed to make research easier to follow—not to hide everything behind
 - Manage users, health information, audits, cleanup, and exports through admin tools.
 - Switch between light and dark themes.
 
-## How a research request works
+## How it works - approach and architecture
 
 ```text
 Your question
@@ -58,6 +58,115 @@ EquityLens uses several providers because no single source covers every company 
 | Memo generation | Google Gemini | Deterministic fallback reasoning |
 
 When verified financial coverage is too limited, the application returns `INSUFFICIENT_DATA` instead of presenting a confident investment recommendation.
+
+## Key decisions and trade-offs
+
+This project was built as an explainable research assistant, not as an automated stock picker. A few decisions shaped almost every part of the implementation.
+
+### A workflow instead of one large prompt
+
+The research process is split into LangGraph nodes for company resolution, financial collection, news collection, scoring, and memo generation. This takes more code than sending everything to Gemini at once, but it makes the system easier to inspect, test, and recover when one provider fails.
+
+### Deterministic scoring, LLM-written explanation
+
+Financial scores and recommendation gates are calculated in TypeScript. Gemini receives the collected evidence and explains it in a readable memo. This keeps the model from freely inventing a score, while still using an LLM where it adds the most value: synthesis and communication.
+
+### Missing data stays missing
+
+The system does not silently turn an unavailable value into zero. It shows a dash, lowers evidence completeness, records the provider warning, and can return `INSUFFICIENT_DATA`. The trade-off is that some reports look less complete, but they are more honest.
+
+### Multiple providers instead of one perfect provider
+
+Alpha Vantage works well for many US listings, SEC EDGAR adds filing-backed coverage, and Yahoo's fundamentals time-series endpoint helps with NSE/BSE companies. Supporting multiple sources adds normalization and fallback complexity, but gives the application much broader company coverage.
+
+### One company per research chat
+
+Follow-up questions remain attached to the company that started the chat. Full entity switching inside an existing conversation was left out to keep context handling predictable. The UI tells users to start a new chat when they want to research another company.
+
+### Comparisons reuse the research pipeline
+
+A comparison runs the same research workflow for every company in parallel, then creates a comparison memo from those structured reports. This avoids maintaining two different definitions of financial quality, although comparison time is still limited by the slowest provider request.
+
+### Product scope
+
+Research and Compare are the core, production-focused experiences. Authentication, history, watchlists, exports, settings, and admin tools demonstrate the surrounding SaaS architecture, but a future iteration would give those secondary areas the same depth of end-to-end testing as the two core workflows.
+
+The project deliberately does **not** place trades, connect to brokerage accounts, predict exact prices, provide real-time exchange data, or claim fiduciary-grade advice.
+
+## Example runs
+
+These are shortened examples from development runs. Output changes as market data, news, and provider availability change, so they should be read as demonstrations of behavior rather than permanent investment conclusions.
+
+### 1. Research: Tata Consultancy Services (TCS)
+
+**Input**
+
+```text
+TCS
+```
+
+**Resolved company**
+
+```text
+Tata Consultancy Services Limited
+Ticker: TCS.NS
+Exchange: NSE
+Financial source: YAHOO_FINANCE_FUNDAMENTALS
+```
+
+**Selected financial output from the tested response**
+
+| Metric | Value |
+| --- | ---: |
+| Revenue growth YoY | 12.09% |
+| Profit margin | 18.47% |
+| Operating margin | 23.96% |
+| P/E ratio | 15.03 |
+| EPS | 137.64 |
+| Market capitalization | approximately INR 7.49T |
+
+This run is also a useful example of a provider trade-off: Yahoo's crumb-protected quote endpoint returned `401`, so EquityLens uses the working fundamentals time-series endpoint and derives growth and margins from reported values.
+
+### 2. Compare: TCS vs Infosys
+
+**Input**
+
+```text
+TCS, Infosys
+```
+
+**Shortened output**
+
+```text
+TCS
+  Resolved as: TCS.NS
+  Financial source: Yahoo Finance fundamentals
+  Revenue growth: 12.09%
+  Profit margin: 18.47%
+  P/E: 15.03
+
+Infosys
+  Resolved as: INFY
+  Financial source: Alpha Vantage
+  Revenue growth: 6.60%
+  Profit margin: 16.40%
+  P/E: 13.68
+```
+
+The comparison then applies the same scoring model to both structured reports and asks Gemini to explain the winner, trade-offs, risks, and evidence quality. It does not rank companies only by one metric such as P/E.
+
+### 3. A company with incomplete financial coverage
+
+If EquityLens resolves a public company but cannot retrieve enough verified fundamentals, the result is intentionally similar to this:
+
+```text
+Decision: INSUFFICIENT_DATA
+Confidence: low
+Financial completeness: below recommendation threshold
+Next action: save as a research target and wait for verified financial evidence
+```
+
+This is a successful safety outcome, not a failed prompt. The system refuses to turn news snippets or listing information into a confident investment recommendation.
 
 ## Main technology
 
@@ -107,7 +216,7 @@ equitylens-ai/
 └── package.json                 # Scripts and dependencies
 ```
 
-## Run locally
+## How to run it
 
 ### 1. Prerequisites
 
@@ -220,6 +329,38 @@ Google OAuth accounts are verified through Google. Passwords and OTPs are stored
 - Research history is stored only for signed-in users.
 - Existing saved reports preserve the data that was available when they were created.
 - Scores summarize available evidence; they are not price targets or guarantees.
+
+## What I would improve with more time
+
+The next improvements would focus on reliability before adding more visible features:
+
+1. **Entity switching in chat.** Detect when a user names a new company and offer to start a fresh research context automatically.
+2. **Provider caching and retry queues.** Cache stable fundamentals, retry temporary failures, and reduce repeated requests during comparisons.
+3. **Broader international coverage.** Add another licensed fundamentals provider and normalize fiscal periods across exchanges.
+4. **Stronger automated tests.** Add provider contract tests, mocked LangGraph integration tests, and browser-level Research/Compare tests. The current scoring-test script also needs its Node ESM import resolution corrected.
+5. **Streaming progress.** Stream node completion from the server instead of approximating progress entirely in the client.
+6. **Source-level citations.** Connect each financial metric and memo claim directly to its filing, provider field, or news URL.
+7. **Historical charts.** Add revenue, earnings, margin, cash-flow, and valuation trends instead of showing only a snapshot.
+8. **Comparison controls.** Let users choose weighting, time horizon, risk profile, and benchmark before ranking companies.
+9. **Observability.** Add structured logs, provider latency dashboards, error tracking, and alerts for quota exhaustion.
+10. **Focused MVP navigation.** Keep only Home, Research, and Compare visible until secondary workspaces receive full production testing.
+
+## AI-assisted development and chat logs
+
+This project was built through an iterative conversation with an AI coding assistant. The assistant helped inspect the repository, trace provider failures, modify the UI, test API responses, validate production builds, and improve documentation. The final architectural and product choices remained developer decisions and were verified against the working code.
+
+The curated development transcript is included in [AI_CHAT_LOGS.md](./AI_CHAT_LOGS.md). It records the user prompts, actions taken, test results, and important decisions without exposing API keys, passwords, private environment values, or hidden model reasoning.
+
+Examples of AI-assisted work include:
+
+- simplifying the unauthenticated navbar and authentication UI;
+- diagnosing clipped login content;
+- tracing empty TCS fundamentals to Yahoo's `401 Invalid Crumb` response;
+- switching NSE/BSE data collection to Yahoo's working fundamentals time-series API;
+- testing a real TCS vs Infosys comparison response;
+- correcting automatic scroll behavior after a research response;
+- documenting the one-company-per-chat limitation; and
+- turning the default Next.js README into this project guide.
 
 ## Deploy to Vercel
 
