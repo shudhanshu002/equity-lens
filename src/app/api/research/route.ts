@@ -1,36 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { runInvestmentResearch } from "@/lib/langgraph/graph";
-
-const ResearchRequestSchema = z.object({
-  company: z.string().min(2, "Company name or ticker is required"),
-});
+import { validateResearchInput } from "@/lib/services/research-input-validation";
+import { resolveCompany } from "@/lib/services/company-resolver";
+import { dedupeResearchMetadata } from "@/lib/utils/dedupe-research-metadata";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const { company } = ResearchRequestSchema.parse(body);
+    const validation = validateResearchInput(body.company);
 
-    const report = await runInvestmentResearch(company);
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: validation.error,
+          reason: validation.reason,
+        },
+        { status: 400 }
+      );
+    }
+
+    const resolvedCompanyResult = await resolveCompany(validation.companyQuery);
+
+    if (resolvedCompanyResult.ambiguous) {
+      return NextResponse.json(
+        {
+          success: false,
+          reason: "AMBIGUOUS_COMPANY",
+          message: `"${validation.companyQuery}" matches multiple listed companies. Please choose one.`,
+          suggestions: resolvedCompanyResult.suggestions,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!resolvedCompanyResult || !resolvedCompanyResult.company) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Could not find a supported public company for "${validation.companyQuery}". Try using the official company name or ticker symbol.`,
+          reason: "COMPANY_NOT_FOUND",
+        },
+        { status: 400 }
+      );
+    }
+
+    const report = await runInvestmentResearch(validation.companyQuery);
+
+    const result = {
+      company: report.company,
+      financials: report.financials,
+      news: report.news,
+      score: report.score,
+      decision: report.decision,
+      confidence: report.confidence,
+      thesis: report.thesis,
+      bullCase: report.bullCase,
+      bearCase: report.bearCase,
+      risks: report.risks,
+      whatWouldChangeDecision: report.whatWouldChangeDecision,
+      metadata: report.metadata,
+      generatedAt: new Date().toISOString(),
+    };
+
+    const cleanResult = dedupeResearchMetadata(result);
 
     return NextResponse.json({
       success: true,
-      data: {
-        company: report.company,
-        financials: report.financials,
-        news: report.news,
-        score: report.score,
-        decision: report.decision,
-        confidence: report.confidence,
-        thesis: report.thesis,
-        bullCase: report.bullCase,
-        bearCase: report.bearCase,
-        risks: report.risks,
-        whatWouldChangeDecision: report.whatWouldChangeDecision,
-        metadata: report.metadata,
-        generatedAt: new Date().toISOString(),
-      },
+      data: cleanResult,
     });
   } catch (error) {
     console.error("Research API error:", error);

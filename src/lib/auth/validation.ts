@@ -65,27 +65,40 @@ export const forgotPasswordSchema = z.object({
     .max(120, "Email must be less than 120 characters."),
 });
 
-export const resetPasswordSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Please enter a valid email address.")
-    .max(120, "Email must be less than 120 characters."),
+export const resetPasswordSchema = z.preprocess(
+  (data: any) => {
+    if (data && typeof data === "object") {
+      if (data.password && !data.newPassword) {
+        return {
+          ...data,
+          newPassword: data.password,
+        };
+      }
+    }
+    return data;
+  },
+  z.object({
+    email: z
+      .string()
+      .trim()
+      .email("Please enter a valid email address.")
+      .max(120, "Email must be less than 120 characters."),
 
-  otp: z
-    .string()
-    .trim()
-    .length(6, "OTP must be 6 digits.")
-    .regex(/^[0-9]+$/, "OTP must contain only numbers."),
+    otp: z
+      .string()
+      .trim()
+      .length(6, "OTP must be 6 digits.")
+      .regex(/^[0-9]+$/, "OTP must contain only numbers."),
 
-  newPassword: z
-    .string()
-    .min(8, "Password must be at least 8 characters.")
-    .max(100, "Password must be less than 100 characters.")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter.")
-    .regex(/[0-9]/, "Password must contain at least one number."),
-});
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters.")
+      .max(100, "Password must be less than 100 characters.")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter.")
+      .regex(/[0-9]/, "Password must contain at least one number."),
+  })
+);
 
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

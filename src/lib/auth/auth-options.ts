@@ -10,7 +10,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
 
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,
   },
@@ -86,10 +86,17 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        session.user.role = user.role ?? "USER";
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role ?? "USER";
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.role = (token.role as any) ?? "USER";
       }
 
       return session;

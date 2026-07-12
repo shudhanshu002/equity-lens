@@ -185,7 +185,16 @@ export function AuthModal({
             }
 
             setMessage("Logged in successfully.");
-            onClose();
+            setTimeout(() => {
+                onClose();
+                if (typeof window !== "undefined") {
+                    if (window.location.pathname.startsWith("/auth/")) {
+                        window.location.href = "/";
+                    } else {
+                        window.location.reload();
+                    }
+                }
+            }, 800);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Login failed.");
         } finally {
