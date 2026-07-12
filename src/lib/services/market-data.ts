@@ -7,11 +7,12 @@ import {
   fetchMockFinancials,
   hasMockFinancials,
 } from "@/lib/services/mock-market-data";
+import { fetchSecFinancials } from "@/lib/services/sec-edgar";
 
 type MarketDataResult = {
   companyPatch?: Partial<CompanyProfile>;
   financials: FinancialSnapshot;
-  source: "ALPHA_VANTAGE" | "MOCK";
+  source: "ALPHA_VANTAGE" | "SEC_EDGAR" | "MOCK";
   warning?: string;
 };
 
@@ -81,13 +82,22 @@ export async function fetchCompanyFinancials(
           : "Some unavailable fields were supplemented with curated demo fallback data."),
     };
   } catch (error) {
+    try {
+      const sec = await fetchSecFinancials(company.symbol);
+      return {
+        financials: sec.financials,
+        source: "SEC_EDGAR",
+        warning: `Alpha Vantage was unavailable, so filing-backed SEC Company Facts were used. Valuation ratios may remain unavailable.`,
+      };
+    } catch (secError) {
     return {
       financials: fallbackFinancials,
       source: "MOCK",
       warning:
         error instanceof Error
-          ? `Using mock financial data because real API failed: ${error.message}`
-          : "Using mock financial data because real API failed.",
+          ? `Using mock financial data because Alpha Vantage failed (${error.message}) and SEC filing data was unavailable (${secError instanceof Error ? secError.message : "unknown error"}).`
+          : "Using mock financial data because real providers failed.",
     };
+    }
   }
 }

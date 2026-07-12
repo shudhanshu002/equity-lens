@@ -8,14 +8,12 @@ import {
     BarChart3,
     Bookmark,
     CheckCircle2,
-    Database,
     Download,
     FileText,
     History,
     Loader2,
     Lock,
     RefreshCcw,
-    ShieldCheck,
     Sparkles,
     TrendingUp,
     UserCircle2,
@@ -23,9 +21,6 @@ import {
 import type { AppTab } from "@/lib/frontend/app-tabs";
 import {
     formatDashboardDate,
-    getDashboardCompletionScore,
-    getDashboardGreeting,
-    getDashboardHealthLabel,
     getUserDashboard,
     type UserDashboardData,
 } from "@/lib/user-data/dashboard-client";
@@ -43,7 +38,6 @@ export function UserDashboardSummary({
 
     const [dashboard, setDashboard] = useState<UserDashboardData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
 
     const loggedIn = status === "authenticated";
@@ -68,7 +62,6 @@ export function UserDashboardSummary({
             );
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     }, [loggedIn]);
 
@@ -79,7 +72,6 @@ export function UserDashboardSummary({
     }, [loadDashboard, status]);
 
     async function refreshDashboard() {
-        setRefreshing(true);
         await loadDashboard();
     }
 
@@ -136,84 +128,8 @@ export function UserDashboardSummary({
         );
     }
 
-    const completionScore = getDashboardCompletionScore(dashboard);
-    const healthLabel = getDashboardHealthLabel(dashboard);
-
     return (
         <div className="space-y-8">
-            <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                <div className="relative overflow-hidden rounded-[2.75rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-9">
-                    <div className="absolute right-[-15%] top-[-35%] h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
-                    <div className="absolute bottom-[-42%] left-[20%] h-96 w-96 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-400/10" />
-
-                    <div className="relative">
-                        <div className="mb-5 flex flex-wrap items-center gap-3">
-                            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-black text-cyan-700 dark:text-cyan-300">
-                                <Sparkles className="h-4 w-4" />
-                                Investor Workspace
-                            </span>
-
-                            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">
-                                <Database className="h-4 w-4" />
-                                PostgreSQL Synced
-                            </span>
-                        </div>
-
-                        <h1 className="max-w-4xl text-4xl font-black tracking-tight text-slate-950 dark:text-white md:text-6xl">
-                            {getDashboardGreeting(dashboard.profile)}
-                        </h1>
-
-                        <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300">
-                            Your research reports, comparisons, watchlist ideas, exports, and
-                            account settings are available in one AI investment workspace.
-                        </p>
-
-                        <div className="mt-8 flex flex-wrap gap-3">
-                            <button
-                                onClick={() => onTabChange("research")}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
-                            >
-                                Start Research
-                                <Sparkles className="h-4 w-4" />
-                            </button>
-
-                            <button
-                                onClick={() => onTabChange("compare")}
-                                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-700 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
-                            >
-                                Compare Companies
-                                <BarChart3 className="h-4 w-4" />
-                            </button>
-
-                            <button
-                                onClick={() => void refreshDashboard()}
-                                disabled={refreshing}
-                                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 disabled:opacity-60 dark:border-white/10 dark:bg-white/10 dark:text-slate-300"
-                                aria-label="Refresh dashboard"
-                            >
-                                <RefreshCcw
-                                    className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-                                />
-                            </button>
-                        </div>
-
-                        {error && (
-                            <p className="mt-5 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-300">
-                                {error}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <WorkspaceStatusCard
-                    completionScore={completionScore}
-                    healthLabel={healthLabel}
-                    emailVerified={Boolean(dashboard.profile.emailVerified)}
-                    joinedAt={dashboard.profile.createdAt}
-                    onSettings={() => onTabChange("settings")}
-                />
-            </section>
-
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <DashboardMetric
                     icon={<Bookmark className="h-5 w-5" />}
@@ -375,90 +291,6 @@ function AccountFeature({ text }: { text: string }) {
         <div className="flex items-center gap-3 text-sm font-bold text-slate-300">
             <CheckCircle2 className="h-5 w-5 text-emerald-300" />
             {text}
-        </div>
-    );
-}
-
-function WorkspaceStatusCard({
-    completionScore,
-    healthLabel,
-    emailVerified,
-    joinedAt,
-    onSettings,
-}: {
-    completionScore: number;
-    healthLabel: string;
-    emailVerified: boolean;
-    joinedAt: string;
-    onSettings: () => void;
-}) {
-    return (
-        <section className="rounded-[2.75rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-2xl shadow-slate-900/20 dark:border-white/10 md:p-8">
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                    <ShieldCheck className="h-7 w-7 text-emerald-300" />
-                </div>
-
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-black text-emerald-300">
-                    {healthLabel}
-                </span>
-            </div>
-
-            <h2 className="mt-6 text-3xl font-black">
-                Workspace completion
-            </h2>
-
-            <div className="mt-5 flex items-end justify-between gap-4">
-                <p className="text-5xl font-black">{completionScore}%</p>
-
-                <p className="text-right text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                    Account readiness
-                </p>
-            </div>
-
-            <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
-                <div
-                    className="h-full rounded-full bg-cyan-300 transition-all"
-                    style={{ width: `${completionScore}%` }}
-                />
-            </div>
-
-            <div className="mt-7 space-y-3">
-                <StatusRow
-                    label="Email verification"
-                    value={emailVerified ? "Verified" : "Pending"}
-                />
-
-                <StatusRow
-                    label="Member since"
-                    value={formatDashboardDate(joinedAt)}
-                />
-
-                <StatusRow label="Storage" value="PostgreSQL" />
-            </div>
-
-            <button
-                onClick={onSettings}
-                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5"
-            >
-                Manage Account
-                <ArrowRight className="h-4 w-4" />
-            </button>
-        </section>
-    );
-}
-
-function StatusRow({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
-    return (
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3 last:border-b-0 last:pb-0">
-            <span className="text-sm font-bold text-slate-400">{label}</span>
-            <span className="text-sm font-black text-white">{value}</span>
         </div>
     );
 }

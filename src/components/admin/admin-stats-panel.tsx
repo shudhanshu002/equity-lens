@@ -135,7 +135,64 @@ export function AdminStatsPanel() {
     const workspaceTotal = getAdminStatsWorkspaceTotal(stats);
     const activityHealth = getAdminStatsActivityHealth(stats);
 
+    const overviewMetrics = [
+        ["Users", stats.users.total],
+        ["Workspace", workspaceTotal],
+        ["Research", stats.workspace.researchItems],
+        ["Comparisons", stats.workspace.comparisonItems],
+        ["Exports", stats.workspace.exportItems],
+        ["Active sessions", stats.workspace.activeSessions],
+    ] as const;
+
     return (
+        <div>
+            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-red-500" />
+                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Platform overview</h2>
+                        <span className="text-xs text-emerald-600 dark:text-emerald-300">{activityHealth}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current platform usage and recent research activity.</p>
+                </div>
+                <button onClick={() => void refreshStats()} disabled={refreshing} aria-label="Refresh overview" title="Refresh overview" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 disabled:opacity-50 dark:border-white/10 dark:text-slate-400">
+                    <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                </button>
+            </header>
+
+            <section className="grid grid-cols-2 border-b border-slate-200 dark:border-white/10 sm:grid-cols-3 xl:grid-cols-6">
+                {overviewMetrics.map(([label, value]) => (
+                    <div key={label} className="border-r border-slate-200 px-4 py-4 first:pl-0 last:border-r-0 dark:border-white/10">
+                        <p className="text-xs text-slate-400">{label}</p>
+                        <p className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">{value}</p>
+                    </div>
+                ))}
+            </section>
+
+            <section className="py-5">
+                <div className="mb-3 flex items-center justify-between gap-4">
+                    <h3 className="text-sm font-semibold text-slate-950 dark:text-white">Recent research</h3>
+                    <span className="text-xs text-slate-400">Average score {stats.workspace.averageResearchScore}%</span>
+                </div>
+                {stats.latest.historyItems.length > 0 ? (
+                    <div className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
+                        {stats.latest.historyItems.slice(0, 5).map((item) => (
+                            <div key={item.id} className="grid gap-1 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-5">
+                                <span className="truncate font-medium text-slate-900 dark:text-white">{item.title}</span>
+                                <span className="text-xs text-slate-400">{getAdminStatsUserName(item.user)} · {formatAdminStatsDate(item.createdAt)}</span>
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{item.score !== null ? `${item.score}%` : item.type}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="border-y border-slate-200 py-4 text-sm text-slate-400 dark:border-white/10">No research activity yet.</p>}
+            </section>
+        </div>
+    );
+
+    /* Legacy analytics layout retained below while the compact overview is active. */
+    {
+    const legacyStats = stats as AdminStatsData;
+    return ((stats: AdminStatsData) => (
         <div className="space-y-8">
             <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="relative overflow-hidden rounded-[2.75rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-9">
@@ -202,10 +259,10 @@ export function AdminStatsPanel() {
                     </p>
 
                     <div className="mt-7 space-y-3">
-                        <DarkStatRow label="Active Sessions" value={String(stats.workspace.activeSessions)} />
-                        <DarkStatRow label="Average Score" value={`${stats.workspace.averageResearchScore}%`} />
-                        <DarkStatRow label="Research Items" value={String(stats.workspace.researchItems)} />
-                        <DarkStatRow label="Comparison Items" value={String(stats.workspace.comparisonItems)} />
+                        <DarkStatRow label="Active Sessions" value={String(legacyStats.workspace.activeSessions)} />
+                        <DarkStatRow label="Average Score" value={`${legacyStats.workspace.averageResearchScore}%`} />
+                        <DarkStatRow label="Research Items" value={String(legacyStats.workspace.researchItems)} />
+                        <DarkStatRow label="Comparison Items" value={String(legacyStats.workspace.comparisonItems)} />
                     </div>
                 </div>
             </section>
@@ -345,7 +402,8 @@ export function AdminStatsPanel() {
                 </LatestPanel>
             </section>
         </div>
-    );
+    ))(legacyStats);
+    }
 }
 
 function AdminStatsMetric({

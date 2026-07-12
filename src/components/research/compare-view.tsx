@@ -15,12 +15,14 @@ import {
 } from "lucide-react";
 import { ComparisonExport } from "@/components/research/comparison-export";
 import { ComparisonApiResponse } from "@/lib/api-client";
-import { formatNumber } from "@/lib/frontend/format";
+import { formatNumber, formatMarketCap } from "@/lib/frontend/format";
+import { CompareFollowUpPanel } from "@/components/research/compare-follow-up-panel";
 
 type ComparisonData = NonNullable<ComparisonApiResponse["data"]>;
 
 type CompareViewProps = {
     comparison: ComparisonData;
+    compact?: boolean;
 };
 
 function decisionStyle(decision: string) {
@@ -41,11 +43,16 @@ function clampScore(value: number) {
 
 export function CompareView({
     comparison,
+    compact = false,
 }: CompareViewProps) {
     const memo = comparison.comparison;
     const winner = comparison.companies.find(
         (item) => item.company.symbol === memo.winnerSymbol
     );
+
+    if (compact) {
+        return <CompactComparisonView comparison={comparison} />;
+    }
 
     return (
         <section className="space-y-8">
@@ -131,7 +138,7 @@ export function CompareView({
                                 <div className="mt-6 space-y-3">
                                     <DarkInfoRow
                                         label="Market Cap"
-                                        value={formatNumber(winner.company.marketCap)}
+                                        value={formatMarketCap(winner.company.marketCap, winner.company.currency)}
                                     />
 
                                     <DarkInfoRow
@@ -526,4 +533,197 @@ function DataQualityRow({ label, value }: { label: string; value: string }) {
             </span>
         </div>
     );
+}
+
+function CompactComparisonView({ comparison }: { comparison: ComparisonData }) {
+    const memo = comparison.comparison;
+    const warnings = compactWarnings(comparison.metadata.warnings);
+
+    return (
+        <section className="space-y-9">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Winner · {memo.winnerSymbol}</span>
+                        <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${decisionStyle(memo.winnerDecision)}`}>{memo.winnerDecision}</span>
+                    </div>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">{memo.winnerName}</h2>
+                    <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">{memo.summary}</p>
+                </div>
+                <ComparisonExport comparison={comparison} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-slate-200 py-5 sm:grid-cols-4 dark:border-white/10">
+                <CompactMetric label="Winner score" value={`${memo.winnerScore}/100`} />
+                <CompactMetric label="Companies" value={`${comparison.companies.length}`} />
+                <CompactMetric label="Provider" value={comparison.metadata.comparisonProvider} />
+                <CompactMetric label="Decision" value={memo.winnerDecision} />
+            </div>
+
+            {warnings.length > 0 && (
+                <section className="border-b border-slate-200 pb-6 dark:border-white/10">
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300"><AlertTriangle className="h-4 w-4" /></div>
+                        <div>
+                            <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-semibold text-slate-950 dark:text-white">Data coverage</h3><span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-400/10 dark:text-amber-300">Fallback reviewed</span></div>
+                            <ul className="mt-3 space-y-1.5">
+                                {warnings.map((warning) => <li key={warning} className="flex gap-2 text-xs leading-5 text-slate-500 dark:text-slate-400"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />{warning}</li>)}
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            <ComparisonSection title="Score comparison">
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[680px] border-collapse text-sm">
+                        <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-400 dark:border-white/10"><th className="pb-3 font-medium">Company</th><th className="pb-3 font-medium">Score</th><th className="pb-3 font-medium">Growth</th><th className="pb-3 font-medium">Profitability</th><th className="pb-3 font-medium">Balance</th><th className="pb-3 font-medium">Valuation</th><th className="pb-3 font-medium">Sentiment</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/10">
+                            {comparison.companies.map((report) => (
+                                <tr key={report.company.symbol}>
+                                    <td className="py-4"><div className="flex items-center gap-2"><span className="font-semibold text-slate-950 dark:text-white">{report.company.symbol}</span>{report.company.symbol === memo.winnerSymbol && <Crown className="h-3.5 w-3.5 text-emerald-500" />}</div><span className="text-xs text-slate-400">{report.company.name}</span></td>
+                                    <td className="py-4 font-semibold text-slate-950 dark:text-white">{report.score.total}</td>
+                                    <td className="py-4 text-slate-600 dark:text-slate-300">{report.score.growth}</td><td className="py-4 text-slate-600 dark:text-slate-300">{report.score.profitability}</td><td className="py-4 text-slate-600 dark:text-slate-300">{report.score.balanceSheet}</td><td className="py-4 text-slate-600 dark:text-slate-300">{report.score.valuation}</td><td className="py-4 text-slate-600 dark:text-slate-300">{report.score.sentiment}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </ComparisonSection>
+
+            <ComparisonSection title="Company evidence">
+                <div className="divide-y divide-slate-200 dark:divide-white/10">
+                    {comparison.companies.map((report) => (
+                        <article key={report.company.symbol} className="py-6 first:pt-0 last:pb-0">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="text-base font-semibold text-slate-950 dark:text-white">{report.company.name}</h4>
+                                        <span className="text-xs text-slate-400">{report.company.symbol}</span>
+                                    </div>
+                                    <p className="mt-1 text-xs text-slate-400">{report.company.sector ?? "Unknown sector"} · {report.company.industry ?? "Unknown industry"}</p>
+                                </div>
+                                <span className={`rounded-md border px-2 py-1 text-[11px] font-semibold ${decisionStyle(report.decision)}`}>{report.decision}</span>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                                <CompactMetric label="Revenue growth" value={`${report.financials.revenueGrowthYoY ?? "N/A"}%`} />
+                                <CompactMetric label="Profit margin" value={`${report.financials.profitMargin ?? "N/A"}%`} />
+                                <CompactMetric label="P/E ratio" value={`${report.financials.peRatio ?? "N/A"}`} />
+                                <CompactMetric label="Market cap" value={formatMarketCap(report.company.marketCap, report.company.currency)} />
+                            </div>
+
+                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{report.thesis}</p>
+
+                            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                                <EvidencePoint label="Primary strength" value={report.bullCase[0] ?? "No strength data available."} tone="positive" />
+                                <EvidencePoint label="Primary risk" value={report.risks[0] ?? report.bearCase[0] ?? "No risk data available."} tone="warning" />
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </ComparisonSection>
+
+            <ComparisonSection title="Ranking reasoning">
+                <ol>
+                    {memo.ranking.map((item, index) => (
+                        <li key={`${item.rank}-${item.symbol}`} className="relative grid grid-cols-[28px_minmax(0,1fr)] gap-3 pb-6 last:pb-0">
+                            {index < memo.ranking.length - 1 && <span className="absolute left-[13px] top-7 h-full w-px bg-slate-200 dark:bg-white/10" />}
+                            <span className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${item.rank === 1 ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300"}`}>{item.rank}</span>
+                            <div><div className="flex flex-wrap items-center gap-2"><h4 className="text-sm font-semibold text-slate-950 dark:text-white">{item.name} ({item.symbol})</h4>{item.rank === 1 && <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Winner</span>}</div><p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{item.reason}</p></div>
+                        </li>
+                    ))}
+                </ol>
+            </ComparisonSection>
+
+            <ComparisonSection title="Key tradeoffs">
+                <ul className="space-y-3">{memo.keyTradeoffs.map((item, index) => <li key={index} className="flex items-start gap-3"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500" /><p className="text-sm leading-7 text-slate-600 dark:text-slate-300">{item}</p></li>)}</ul>
+            </ComparisonSection>
+
+            <ComparisonSection title="Relevant news">
+                <div className="space-y-7">
+                    {comparison.companies.map((report) => {
+                        const news = getRelevantNews(report.news);
+                        return (
+                            <div key={report.company.symbol}>
+                                <div className="mb-3 flex items-center gap-2"><h4 className="text-sm font-semibold text-slate-950 dark:text-white">{report.company.name}</h4><span className="text-xs text-slate-400">{report.company.symbol}</span></div>
+                                {news.length === 0 ? (
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">No relevant news was available.</p>
+                                ) : (
+                                    <div className="divide-y divide-slate-100 border-y border-slate-100 dark:divide-white/10 dark:border-white/10">
+                                        {news.map((item, index) => (
+                                            <article key={`${item.headline}-${index}`} className="py-4">
+                                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        {item.url ? <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-slate-950 transition hover:text-cyan-600 dark:text-white dark:hover:text-cyan-300">{item.headline}</a> : <h5 className="text-sm font-semibold text-slate-950 dark:text-white">{item.headline}</h5>}
+                                                        <p className="mt-1 text-xs text-slate-400">{item.source}{item.publishedAt ? ` · ${formatNewsDate(item.publishedAt)}` : ""}</p>
+                                                    </div>
+                                                    <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${newsSentimentStyle(item.sentiment)}`}>{item.sentiment ?? "NEUTRAL"}</span>
+                                                </div>
+                                                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{item.summary}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </ComparisonSection>
+
+            <ComparisonSection title="Data sources">
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <CompactMetric label="Financial" value={comparison.metadata.dataQuality.financialSources.join(", ") || "N/A"} />
+                    <CompactMetric label="News" value={comparison.metadata.dataQuality.newsSources.join(", ") || "N/A"} />
+                    <CompactMetric label="Memo" value={comparison.metadata.dataQuality.memoProviders.join(", ") || "N/A"} />
+                </div>
+            </ComparisonSection>
+
+            <CompareFollowUpPanel compareResult={comparison} />
+        </section>
+    );
+}
+
+function ComparisonSection({ title, children }: { title: string; children: React.ReactNode }) {
+    return <section className="border-t border-slate-200 pt-6 dark:border-white/10"><h3 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">{title}</h3>{children}</section>;
+}
+
+function CompactMetric({ label, value }: { label: string; value: string }) {
+    return <div><p className="text-xs text-slate-400">{label}</p><p className="mt-1 break-words text-sm font-semibold text-slate-950 dark:text-white">{value}</p></div>;
+}
+
+function compactWarnings(warnings: string[]) {
+    const normalized = warnings.map((warning) => {
+        if (/quota|429 Too Many Requests|Gemini failed/i.test(warning)) return "Gemini was unavailable, so deterministic fallback reasoning was used.";
+        if (/fallback memo generation/i.test(warning)) return "Fallback memo generation was used for one or more companies.";
+        if (/mock financial data|real API failed|Alpha Vantage information/i.test(warning)) return "Real-time financial data was rate-limited for one or more companies, so clearly labeled fallback financials were used.";
+        if (/low-relevance news/i.test(warning)) return "Low-relevance news was excluded from sentiment scoring.";
+        if (/unavailable fields|financial fields were unavailable/i.test(warning)) return "Unavailable financial fields were treated as unknown rather than negative.";
+        return warning;
+    });
+    return [...new Set(normalized)];
+}
+
+function EvidencePoint({ label, value, tone }: { label: string; value: string; tone: "positive" | "warning" }) {
+    return (
+        <div className="flex items-start gap-3">
+            <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${tone === "positive" ? "bg-emerald-500" : "bg-amber-500"}`} />
+            <div><p className="text-xs font-medium text-slate-400">{label}</p><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{value}</p></div>
+        </div>
+    );
+}
+
+function getRelevantNews<T>(news: T[]) {
+    return news.slice(0, 3);
+}
+
+function formatNewsDate(value: string) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
+}
+
+function newsSentimentStyle(sentiment?: string) {
+    if (sentiment === "POSITIVE") return "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300";
+    if (sentiment === "NEGATIVE") return "bg-red-50 text-red-700 dark:bg-red-400/10 dark:text-red-300";
+    return "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300";
 }

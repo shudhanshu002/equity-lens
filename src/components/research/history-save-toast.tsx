@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, Database, HardDrive, Info, XCircle } from "lucide-react";
+import { useEffect } from "react";
+import { CheckCircle2, HardDrive, Info, X, XCircle } from "lucide-react";
 import type { AutoSaveHistoryResult } from "@/lib/user-data/auto-save-history";
 
 type HistorySaveToastProps = {
@@ -9,90 +10,33 @@ type HistorySaveToastProps = {
 };
 
 export function HistorySaveToast({ result, onClose }: HistorySaveToastProps) {
+    useEffect(() => {
+        if (!result) return;
+        const timeout = window.setTimeout(onClose, result.error ? 6000 : 3200);
+        return () => window.clearTimeout(timeout);
+    }, [result, onClose]);
+
     if (!result) return null;
 
-    const Icon =
-        result.mode === "database"
-            ? Database
-            : result.mode === "local"
-                ? HardDrive
-                : result.saved
-                    ? CheckCircle2
-                    : Info;
-
     const isError = Boolean(result.error);
+    const Icon = isError ? XCircle : result.mode === "local" ? HardDrive : result.saved ? CheckCircle2 : Info;
+    const title = isError ? "Save failed" : result.mode === "database" ? "Saved" : result.mode === "local" ? "Saved locally" : "Not saved";
+    const message = result.mode === "database" && !isError ? "Added to account history" : result.message;
 
     return (
-        <div className="fixed bottom-6 right-6 z-[70] w-[calc(100vw-3rem)] max-w-md">
-            <div
-                className={`overflow-hidden rounded-[1.75rem] border p-4 shadow-2xl backdrop-blur-xl ${isError
-                        ? "border-red-400/20 bg-red-950/90 text-red-50 shadow-red-950/30"
-                        : "border-white/10 bg-slate-950/90 text-white shadow-slate-950/30"
-                    }`}
-            >
-                <div className="flex gap-4">
-                    <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${isError
-                                ? "bg-red-400/15 text-red-200"
-                                : result.mode === "database"
-                                    ? "bg-emerald-400/15 text-emerald-200"
-                                    : result.mode === "local"
-                                        ? "bg-cyan-400/15 text-cyan-200"
-                                        : "bg-amber-400/15 text-amber-200"
-                            }`}
-                    >
-                        {isError ? (
-                            <XCircle className="h-5 w-5" />
-                        ) : (
-                            <Icon className="h-5 w-5" />
-                        )}
+        <div className="fixed bottom-6 right-6 z-[70] w-[calc(100vw-3rem)] max-w-xs animate-in fade-in slide-in-from-bottom-2">
+            <div className={`rounded-xl border p-3 shadow-xl backdrop-blur-xl ${isError ? "border-red-400/20 bg-red-950/90 text-red-50" : "border-white/10 bg-slate-950/90 text-white"}`}>
+                <div className="flex items-center gap-3">
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isError ? "bg-red-400/15 text-red-200" : "bg-emerald-400/15 text-emerald-200"}`}>
+                        <Icon className="h-4 w-4" />
                     </div>
-
                     <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <p className="text-sm font-black">
-                                    {result.mode === "database"
-                                        ? "Saved to database"
-                                        : result.mode === "local"
-                                            ? "Saved locally"
-                                            : "History not saved"}
-                                </p>
-
-                                <p className="mt-1 text-sm leading-6 text-slate-300">
-                                    {result.message}
-                                </p>
-
-                                {result.error && (
-                                    <p className="mt-2 rounded-2xl bg-red-400/10 px-3 py-2 text-xs font-bold leading-5 text-red-100">
-                                        {result.error}
-                                    </p>
-                                )}
-                            </div>
-
-                            <button
-                                onClick={onClose}
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/15 hover:text-white"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="mt-4 flex items-center gap-2">
-                            <span
-                                className={`h-2 flex-1 rounded-full ${result.mode === "database"
-                                        ? "bg-emerald-300"
-                                        : result.mode === "local"
-                                            ? "bg-cyan-300"
-                                            : "bg-amber-300"
-                                    }`}
-                            />
-
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                                EquityLens
-                            </span>
-                        </div>
+                        <p className="text-sm font-semibold">{title}</p>
+                        <p className="mt-0.5 truncate text-xs text-slate-300">{message}</p>
                     </div>
+                    <button onClick={onClose} aria-label="Dismiss notification" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/60 transition hover:bg-white/10 hover:text-white">
+                        <X className="h-3.5 w-3.5" />
+                    </button>
                 </div>
             </div>
         </div>

@@ -42,6 +42,9 @@ type RecentHistoryProps = {
     currentComparison: ComparisonData | undefined;
     onOpenReport: (report: InvestmentResearchReport) => void;
     onOpenComparison: (comparison: ComparisonData) => void;
+    compact?: boolean;
+    conversationId?: string;
+    onConversationSelect?: (id: string) => void;
 };
 
 const STORAGE_KEY = "equitylens-research-history";
@@ -69,10 +72,11 @@ function writeHistory(items: HistoryItem[]) {
 }
 
 function createResearchHistoryItem(
-    report: InvestmentResearchReport
+    report: InvestmentResearchReport,
+    conversationId: string
 ): HistoryItem {
     return {
-        id: `research-${report.company.symbol}-${report.generatedAt}`,
+        id: conversationId,
         type: "research",
         title: report.company.name,
         subtitle: `${report.company.symbol} · ${report.company.sector ?? "Unknown sector"
@@ -84,19 +88,25 @@ function createResearchHistoryItem(
     };
 }
 
-function createComparisonHistoryItem(comparison: ComparisonData): HistoryItem {
+function createComparisonHistoryItem(comparison: ComparisonData, conversationId?: string): HistoryItem {
     const symbols = comparison.companies
         .map((item) => item.company.symbol)
         .join(" vs ");
 
+    const generatedAt = comparison.metadata?.generatedAt ?? new Date().toISOString();
+    const winnerName = comparison.comparison?.winnerName ?? comparison.comparison?.winner?.name ?? "No winner";
+    const winnerSymbol = comparison.comparison?.winnerSymbol ?? comparison.comparison?.winner?.symbol ?? "N/A";
+    const winnerDecision = comparison.comparison?.winnerDecision ?? "WATCHLIST";
+    const winnerScore = comparison.comparison?.winnerScore ?? 0;
+
     return {
-        id: `compare-${symbols}-${comparison.metadata.generatedAt}`,
+        id: conversationId ?? `compare-${symbols}-${generatedAt}`,
         type: "compare",
         title: symbols,
-        subtitle: `Winner: ${comparison.comparison.winnerSymbol}`,
-        decision: comparison.comparison.winnerDecision,
-        score: comparison.comparison.winnerScore,
-        createdAt: comparison.metadata.generatedAt,
+        subtitle: `Winner: ${winnerName} (${winnerSymbol})`,
+        decision: winnerDecision,
+        score: winnerScore,
+        createdAt: generatedAt,
         payload: comparison,
     };
 }
@@ -129,6 +139,9 @@ export function RecentHistory({
     currentComparison,
     onOpenReport,
     onOpenComparison,
+    compact = false,
+    conversationId,
+    onConversationSelect,
 }: RecentHistoryProps) {
     const [items, setItems] = useState<HistoryItem[]>([]);
 
@@ -137,30 +150,106 @@ export function RecentHistory({
     }, []);
 
     useEffect(() => {
-        if (!currentReport) return;
+        if (!currentReport || !conversationId) return;
 
-        const item = createResearchHistoryItem(currentReport);
+        const item = createResearchHistoryItem(currentReport, conversationId);
 
         saveItem(item);
         setItems(readHistory());
-    }, [currentReport]);
+    }, [currentReport, conversationId]);
 
     useEffect(() => {
         if (!currentComparison) return;
 
-        const item = createComparisonHistoryItem(currentComparison);
+        const item = createComparisonHistoryItem(currentComparison, conversationId);
 
         saveItem(item);
         setItems(readHistory());
-    }, [currentComparison]);
+    }, [currentComparison, conversationId]);
 
     function clearHistory() {
         window.localStorage.removeItem(STORAGE_KEY);
         setItems([]);
     }
 
-    if (items.length === 0) {
+    function deleteHistoryItem(id: string) {
+        const nextItems = items.filter((item) => item.id !== id);
+        writeHistory(nextItems);
+        setItems(nextItems);
+    }
+
+    if (items.length === 0 && !compact) {
         return null;
+    }
+
+    if (compact) {
+        return (
+            <aside className="h-fit overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-white/10">
+                    <div className="flex items-center gap-2">
+                        <History className="h-4 w-4 text-slate-500" />
+                        <h3 className="text-sm font-semibold text-slate-950 dark:text-white">History</h3>
+                    </div>
+                    {items.length > 0 && (
+                        <button
+                            onClick={clearHistory}
+                            aria-label="Clear history"
+                            title="Clear history"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-400/10 dark:hover:text-red-300"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
+
+                <div className="scrollbar-none max-h-[calc(100vh-10rem)] space-y-1 overflow-y-auto p-2">
+                    {items.length === 0 ? (
+                        <p className="px-3 py-8 text-center text-xs leading-5 text-slate-400">
+                            Your recent research will appear here.
+                        </p>
+                    ) : (
+                        items.map((item) => (
+                            <div
+                                key={item.id}
+                                className="group flex items-center rounded-lg transition hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+                            >
+                                <button
+                                    onClick={() => {
+                                        onConversationSelect?.(item.id);
+                                        if (item.type === "research") onOpenReport(item.payload);
+                                        else onOpenComparison(item.payload);
+                                    }}
+                                    className="min-w-0 flex-1 px-3 py-3 text-left"
+                                >
+                                  <span className="flex items-start gap-3">
+                                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                                        {item.type === "research" ? <Search className="h-3.5 w-3.5" /> : <BarChart3 className="h-3.5 w-3.5" />}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{item.title}</span>
+                                        <span className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+                                            <Clock3 className="h-3 w-3" />
+                                            {formatDate(item.createdAt)}
+                                        </span>
+                                    </span>
+                                    <span className="text-xs font-semibold text-slate-400">{item.score}</span>
+                                  </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => deleteHistoryItem(item.id)}
+                                    aria-label={`Delete ${item.title} from history`}
+                                    title="Delete chat"
+                                    className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 opacity-100 transition hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-red-400/10 dark:hover:text-red-300"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </aside>
+        );
     }
 
     return (

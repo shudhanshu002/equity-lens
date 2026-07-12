@@ -278,119 +278,53 @@ export function DatabasePortfolioWatchlist({
         onTabChange("compare");
     }
 
-    if (loading) {
-        return (
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-10 text-center shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950 text-white dark:bg-white dark:text-slate-950">
-                    <Loader2 className="h-7 w-7 animate-spin" />
-                </div>
-
-                <h2 className="text-3xl font-black text-slate-950 dark:text-white">
-                    Loading watchlist
-                </h2>
-
-                <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                    EquityLens is preparing your portfolio ideas.
-                </p>
-            </section>
-        );
-    }
-
     return (
-        <div className="space-y-8">
-            <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-                <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-8">
-                    <div className="absolute right-[-12%] top-[-30%] h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl dark:bg-emerald-400/10" />
-                    <div className="absolute bottom-[-34%] left-[18%] h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
-
-                    <div className="relative">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-600 dark:text-emerald-300">
-                            <LineChart className="h-4 w-4" />
-                            Portfolio Watchlist
+        <div className="space-y-5 pt-3">
+            <section className="border-b border-slate-200 pb-5 dark:border-white/10">
+                    <div className="flex flex-wrap items-start justify-between gap-5">
+                        <div>
+                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-300"><LineChart className="h-4 w-4" />Portfolio Watchlist</div>
+                            <h2 className="text-2xl font-semibold text-slate-950 dark:text-white">Investment ideas</h2>
+                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Track, research, and compare companies from one workspace.</p>
                         </div>
-
-                        <h2 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">
-                            Track ideas before turning them into full research reports.
-                        </h2>
-
-                        <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300">
-                            Save companies to your watchlist, analyze them with the research
-                            agent, or compare your top ideas side-by-side.
-                        </p>
-
-                        <div className="mt-8 flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={compareTopIdeas}
                                 disabled={watchlist.length < 2}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
+                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
                             >
                                 Compare Top Ideas
                                 <BarChart3 className="h-4 w-4" />
                             </button>
 
-                            <button
-                                onClick={() => analyzeCompany("Nvidia")}
-                                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-700 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
-                            >
-                                Analyze Nvidia
-                                <ArrowRight className="h-4 w-4" />
-                            </button>
                         </div>
-
+                    </div>
+                    <div className="mt-5 grid grid-cols-3 divide-x divide-slate-200 border-y border-slate-200 py-3 dark:divide-white/10 dark:border-white/10">
+                        <InlineMetric label="Companies" value={String(watchlist.length)} />
+                        <InlineMetric label="Average score" value={`${averageScore}%`} />
+                        <InlineMetric label="Lower risk" value={String(lowerRiskCount)} />
+                    </div>
                         {message && (
-                            <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                            <div className="mt-3 text-sm text-emerald-600 dark:text-emerald-300">
                                 {message}
                             </div>
                         )}
 
                         {error && (
-                            <div className="mt-5 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-300">
+                            <div className="mt-3 text-sm text-red-600 dark:text-red-300">
                                 {error}
                             </div>
                         )}
-                    </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
-                    <PortfolioMetric
-                        icon={<BookmarkPlus className="h-5 w-5" />}
-                        label="Companies"
-                        value={String(watchlist.length)}
-                        helper="Saved ideas"
-                    />
-
-                    <PortfolioMetric
-                        icon={<TrendingUp className="h-5 w-5" />}
-                        label="Avg Score"
-                        value={`${averageScore}%`}
-                        helper="Watchlist quality"
-                    />
-
-                    <PortfolioMetric
-                        icon={<ShieldCheck className="h-5 w-5" />}
-                        label="Lower Risk"
-                        value={String(lowerRiskCount)}
-                        helper="Low / medium risk"
-                    />
-                </div>
             </section>
 
             <WatchlistSyncBanner onSynced={() => void reloadWatchlist()} />
 
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-8">
-                <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-300">
-                            Add company
-                        </p>
-
-                        <h3 className="text-3xl font-black text-slate-950 dark:text-white">
-                            Build your research queue.
-                        </h3>
-                    </div>
+            <section className="border-b border-slate-200 pb-5 dark:border-white/10">
+                <div className="mb-3 flex items-center justify-between gap-4">
+                    <h3 className="text-sm font-semibold text-slate-950 dark:text-white">Add company</h3>
 
                     <div
-                        className={`rounded-full border px-4 py-2 text-xs font-black ${loggedIn
+                        className={`rounded-md px-2 py-1 text-xs font-medium ${loggedIn
                                 ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-600 dark:text-emerald-300"
                                 : "border-amber-400/20 bg-amber-400/10 text-amber-700 dark:text-amber-300"
                             }`}
@@ -399,7 +333,7 @@ export function DatabasePortfolioWatchlist({
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-3 rounded-[2rem] border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-950/60 md:flex-row">
+                <div className="flex flex-col gap-2 md:flex-row">
                     <div className="flex min-h-14 flex-1 items-center gap-3 px-3">
                         <Search className="h-5 w-5 text-slate-400" />
 
@@ -419,7 +353,7 @@ export function DatabasePortfolioWatchlist({
                     <button
                         onClick={() => void addCompany()}
                         disabled={!newCompany.trim() || saving}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl shadow-slate-900/15 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
                     >
                         {saving ? (
                             <>
@@ -459,7 +393,7 @@ export function DatabasePortfolioWatchlist({
                 </section>
             )}
 
-            <section className="grid gap-5 lg:grid-cols-2">
+            <section className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
                 {watchlist.map((item, index) => (
                     <WatchlistCard
                         key={item.id}
@@ -538,6 +472,10 @@ function PortfolioMetric({
     );
 }
 
+function InlineMetric({ label, value }: { label: string; value: string }) {
+    return <div className="px-4 first:pl-0"><p className="text-xs text-slate-400">{label}</p><p className="mt-1 text-lg font-semibold text-slate-950 dark:text-white">{value}</p></div>;
+}
+
 function WatchlistCard({
     item,
     rank,
@@ -549,6 +487,17 @@ function WatchlistCard({
     onAnalyze: () => void;
     onRemove: () => void;
 }) {
+    return (
+        <article className="group grid gap-4 py-5 lg:grid-cols-[minmax(0,1fr)_90px_110px_130px_auto] lg:items-center">
+            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-medium text-slate-400">#{rank}</span><h3 className="truncate text-base font-semibold text-slate-950 dark:text-white">{item.company}</h3><span className="font-mono text-xs text-slate-400">{item.symbol}</span></div><p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{item.thesis}</p></div>
+            <RowValue label="Score" value={`${item.score}%`} />
+            <RowValue label="Risk" value={item.risk} />
+            <RowValue label="Status" value={item.status} />
+            <div className="flex items-center gap-1 lg:justify-end"><button onClick={onAnalyze} className="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-3 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Analyze <Sparkles className="h-3.5 w-3.5" /></button><button onClick={onRemove} aria-label={`Remove ${item.company}`} title="Remove" className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-400/10"><Trash2 className="h-4 w-4" /></button></div>
+        </article>
+    );
+
+    /* Legacy card kept unreachable while the compact row is active. */
     return (
         <article className="group rounded-[2.25rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
@@ -615,6 +564,10 @@ function WatchlistCard({
             </div>
         </article>
     );
+}
+
+function RowValue({ label, value }: { label: string; value: string }) {
+    return <div><p className="text-xs text-slate-400">{label}</p><p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">{value}</p></div>;
 }
 
 function SmallInfo({ label, value }: { label: string; value: string }) {

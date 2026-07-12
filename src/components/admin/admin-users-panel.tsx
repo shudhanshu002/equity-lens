@@ -192,6 +192,16 @@ export function AdminUsersPanel() {
     }
 
     return (
+        <div>
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 dark:border-white/10"><div><h2 className="text-lg font-semibold text-slate-950 dark:text-white">Users</h2><p className="text-xs text-slate-400">{totalUsers} accounts · {users.filter((user) => user.role === "ADMIN").length} admins</p></div><button onClick={() => void loadUsers()} aria-label="Refresh users" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 dark:border-white/10"><RefreshCcw className="h-4 w-4" /></button></header>
+            <div className="grid gap-2 border-b border-slate-200 py-3 dark:border-white/10 sm:grid-cols-[1fr_auto_auto]"><div className="flex h-9 items-center gap-2 border-b border-slate-200 px-2 dark:border-white/10"><Search className="h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && applySearch()} placeholder="Search users" className="w-full bg-transparent text-sm outline-none" /></div><select value={role} onChange={(event) => { setRole(event.target.value as "ALL" | AdminUserRole); setPage(1); }} className="h-9 rounded-md border border-slate-200 bg-transparent px-3 text-sm dark:border-white/10"><option value="ALL">All roles</option><option value="USER">Users</option><option value="ADMIN">Admins</option></select><button onClick={applySearch} className="h-9 rounded-md bg-slate-950 px-4 text-sm text-white dark:bg-white dark:text-slate-950">Search</button></div>
+            <div className="divide-y divide-slate-200 dark:divide-white/10">{users.map((user) => <AdminUserRow key={user.id} user={user} working={workingId === user.id} onOpen={() => void openUser(user.id)} onRoleChange={(nextRole) => void updateRole(user.id, nextRole)} onDelete={() => void removeUser(user.id)} />)}</div>
+            {selectedUser && <AdminUserDetailsPanel user={selectedUser} working={workingId === selectedUser.id} onClose={() => setSelectedUser(null)} onToggleVerification={() => void toggleEmailVerification(selectedUser)} onDelete={() => void removeUser(selectedUser.id)} onRoleChange={(nextRole) => void updateRole(selectedUser.id, nextRole)} />}
+        </div>
+    );
+
+    /* Legacy user console retained below while the compact directory is active. */
+    return (
         <div className="space-y-8">
             <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
                 <div className="relative overflow-hidden rounded-[2.75rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-9">
@@ -386,13 +396,13 @@ export function AdminUsersPanel() {
 
             {selectedUser && (
                 <AdminUserDetailsPanel
-                    user={selectedUser}
-                    working={workingId === selectedUser.id}
+                    user={selectedUser!}
+                    working={workingId === selectedUser!.id}
                     onClose={() => setSelectedUser(null)}
-                    onToggleVerification={() => void toggleEmailVerification(selectedUser)}
-                    onDelete={() => void removeUser(selectedUser.id)}
+                    onToggleVerification={() => void toggleEmailVerification(selectedUser!)}
+                    onDelete={() => void removeUser(selectedUser!.id)}
                     onRoleChange={(nextRole) =>
-                        void updateRole(selectedUser.id, nextRole)
+                        void updateRole(selectedUser!.id, nextRole)
                     }
                 />
             )}

@@ -2,18 +2,10 @@
 
 import type React from "react";
 import {
-    ArrowRight,
-    BarChart3,
-    Bot,
-    Building2,
-    CheckCircle2,
-    Command,
+    ArrowUp,
     Loader2,
-    MessageSquare,
-    Search,
-    SendHorizontal,
+    MessageCircleQuestion,
     Sparkles,
-    WandSparkles,
 } from "lucide-react";
 
 type ConversationalResearchPanelProps = {
@@ -24,6 +16,8 @@ type ConversationalResearchPanelProps = {
     setCompanies: React.Dispatch<React.SetStateAction<string>>;
     loading: boolean;
     error: string;
+    conversationActive?: boolean;
+    contextCompany?: string;
     onResearch: () => void;
     onCompare: () => void;
 };
@@ -50,17 +44,20 @@ export function ConversationalResearchPanel({
     setCompanies,
     loading,
     error,
+    conversationActive = false,
+    contextCompany,
     onResearch,
     onCompare,
 }: ConversationalResearchPanelProps) {
     const value = variant === "research" ? company : companies;
     const setValue = variant === "research" ? setCompany : setCompanies;
-
-    const prompts = variant === "research" ? RESEARCH_PROMPTS : COMPARE_PROMPTS;
+    const isFollowUp = variant === "research" && conversationActive && Boolean(contextCompany);
+    const prompts = isFollowUp
+        ? ["Has the investment case changed?", "What are the biggest risks now?", "How does valuation look?", "What should I monitor next?"]
+        : variant === "research" ? RESEARCH_PROMPTS : COMPARE_PROMPTS;
 
     function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
-
         if (loading) return;
 
         if (variant === "research") {
@@ -72,6 +69,11 @@ export function ConversationalResearchPanel({
     }
 
     function applyPrompt(prompt: string) {
+        if (isFollowUp) {
+            setCompany(prompt);
+            return;
+        }
+
         if (variant === "research") {
             const cleaned = prompt
                 .replace(/^Analyze\s+/i, "")
@@ -99,156 +101,94 @@ export function ConversationalResearchPanel({
     }
 
     return (
-        <section className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-8">
-            <div className="absolute right-[-12%] top-[-30%] h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
-            <div className="absolute bottom-[-35%] left-[18%] h-80 w-80 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-400/10" />
+        <section className={conversationActive ? "relative" : "relative -mb-12 h-[calc(100dvh-8.5rem)] min-h-[420px] overflow-hidden"}>
+            <div className={conversationActive ? "mx-auto w-full max-w-4xl" : "mx-auto flex h-full w-full max-w-4xl flex-col px-5 pb-2 sm:px-8 md:px-12"}>
+                {!conversationActive && <div className="flex flex-1 flex-col items-center justify-center text-center">
+                    <h2 className="max-w-2xl text-2xl font-semibold tracking-normal text-slate-950 dark:text-white sm:text-3xl">
+                        {variant === "research"
+                            ? "What company would you like to research?"
+                            : "Which companies would you like to compare?"}
+                    </h2>
 
-            <div className="relative">
-                <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-600 dark:text-cyan-300">
-                            <Bot className="h-4 w-4" />
-                            Ask EquityLens
-                        </div>
+                    <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        {variant === "research"
+                            ? "Ask about fundamentals, financial health, sentiment, valuation, or long-term investment potential."
+                            : "Compare financial health, scoring, sentiment, and investment potential in one report."}
+                    </p>
 
-                        <h2 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white md:text-4xl">
-                            {variant === "research"
-                                ? "Ask a financial research question."
-                                : "Ask EquityLens to compare companies."}
-                        </h2>
+                </div>}
 
-                        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                            {variant === "research"
-                                ? "Type naturally like: Analyze Nvidia, Should I invest in Reliance, or Research Apple fundamentals."
-                                : "Type naturally like: Compare Tesla with Microsoft, Rank Nvidia Tesla Netflix, or Which is better Apple or Amazon."}
-                        </p>
+                {!conversationActive && <div className="mx-auto mb-3 grid w-full max-w-2xl gap-2 sm:grid-cols-2">
+                        {prompts.map((prompt) => (
+                            <button
+                                key={prompt}
+                                type="button"
+                                onClick={() => applyPrompt(prompt)}
+                                className="flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:bg-white/5 dark:hover:text-white"
+                            >
+                                <Sparkles className="h-4 w-4 shrink-0 text-emerald-500" />
+                                <span>{prompt}</span>
+                            </button>
+                        ))}
+                </div>}
+
+                {error && (
+                    <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
+                        {error}
                     </div>
+                )}
 
-                    <div className="hidden rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-400 md:block">
-                        <span className="inline-flex items-center gap-2">
-                            <Command className="h-4 w-4" />
-                            Ctrl K for commands
-                        </span>
+                {isFollowUp && (
+                    <div className="mb-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                        {prompts.map((prompt) => (
+                            <button key={prompt} type="button" onClick={() => applyPrompt(prompt)} disabled={loading} className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-slate-950 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/40 dark:hover:text-white">
+                                <MessageCircleQuestion className="h-3.5 w-3.5 text-emerald-500" />
+                                {prompt}
+                            </button>
+                        ))}
                     </div>
-                </div>
+                )}
 
                 <form
                     onSubmit={handleSubmit}
-                    className="rounded-[2rem] border border-slate-200 bg-slate-50 p-3 shadow-inner dark:border-white/10 dark:bg-slate-950/60"
+                    className="rounded-2xl border border-slate-300 bg-white p-2 shadow-[0_10px_35px_rgba(15,23,42,0.10)] transition focus-within:border-slate-400 dark:border-white/15 dark:bg-white/[0.06] dark:shadow-black/30 dark:focus-within:border-white/30"
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-cyan-600 shadow-sm dark:bg-white/10 dark:text-cyan-300 sm:flex">
-                            {variant === "research" ? (
-                                <Search className="h-5 w-5" />
-                            ) : (
-                                <BarChart3 className="h-5 w-5" />
-                            )}
-                        </div>
-
+                    <div className="flex min-h-14 items-center gap-2 pl-3">
                         <input
                             value={value}
                             onChange={(event) => setValue(event.target.value)}
                             placeholder={
-                                variant === "research"
-                                    ? "Analyze Nvidia..."
-                                    : "Compare Tesla with Microsoft..."
+                                isFollowUp
+                                    ? `Ask a follow-up about ${contextCompany}...`
+                                    : variant === "research"
+                                    ? "Nvidia"
+                                    : "Nvidia, Microsoft"
                             }
-                            className="min-h-14 flex-1 bg-transparent px-2 text-base font-bold text-slate-950 outline-none placeholder:text-slate-400 dark:text-white md:text-lg"
+                            aria-label={isFollowUp ? `Ask a follow-up about ${contextCompany}` : variant === "research" ? "Research question" : "Companies to compare"}
+                            className="min-w-0 flex-1 bg-transparent py-3 text-base font-normal text-slate-950 outline-none placeholder:text-slate-400 dark:text-white"
                         />
 
                         <button
                             type="submit"
                             disabled={loading || !value.trim()}
-                            className="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
+                            aria-label={variant === "research" ? "Analyze company" : "Compare companies"}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:disabled:bg-white/10 dark:disabled:text-white/30"
                         >
                             {loading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Running
-                                </>
+                                <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                <>
-                                    <span className="hidden sm:inline">
-                                        {variant === "research" ? "Analyze" : "Compare"}
-                                    </span>
-                                    <SendHorizontal className="h-4 w-4" />
-                                </>
+                                <ArrowUp className="h-4 w-4" />
                             )}
                         </button>
                     </div>
                 </form>
 
-                {error && (
-                    <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-300">
-                        {error}
-                    </div>
-                )}
-
-                <div className="mt-5">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-500 dark:text-slate-400">
-                        <WandSparkles className="h-4 w-4" />
-                        Suggested prompts
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        {prompts.map((prompt) => (
-                            <button
-                                key={prompt}
-                                onClick={() => applyPrompt(prompt)}
-                                className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-400/30 hover:text-cyan-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-cyan-300"
-                            >
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                {prompt}
-                                <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="mt-6 grid gap-3 md:grid-cols-3">
-                    <CapabilityCard
-                        icon={<Building2 className="h-4 w-4" />}
-                        title="Company aware"
-                        description="Understands company names and maps them to tickers."
-                    />
-
-                    <CapabilityCard
-                        icon={<Sparkles className="h-4 w-4" />}
-                        title="AI-native"
-                        description="Turns plain English into a structured research workflow."
-                    />
-
-                    <CapabilityCard
-                        icon={<CheckCircle2 className="h-4 w-4" />}
-                        title="Explainable"
-                        description="Every recommendation includes scores and reasoning."
-                    />
-                </div>
+                <p className="mt-3 text-center text-xs text-slate-400">
+                    {isFollowUp
+                        ? `Questions stay connected to ${contextCompany}. Type “Analyze Company Name” to switch companies.`
+                        : "EquityLens can make mistakes. Review financial data before investing."}
+                </p>
             </div>
         </section>
-    );
-}
-
-function CapabilityCard({
-    icon,
-    title,
-    description,
-}: {
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-}) {
-    return (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/50">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-cyan-600 shadow-sm dark:bg-white/10 dark:text-cyan-300">
-                {icon}
-            </div>
-
-            <p className="font-black text-slate-950 dark:text-white">{title}</p>
-
-            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                {description}
-            </p>
-        </div>
     );
 }

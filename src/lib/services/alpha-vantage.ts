@@ -104,7 +104,9 @@ export async function fetchAlphaVantageOverview(
   const response = await fetch(url.toString(), {
     method: "GET",
     next: {
-      revalidate: 60 * 60,
+      // The standard Alpha Vantage plan is very limited. Fundamentals do not
+      // need minute-level refreshes, so reuse successful responses for a day.
+      revalidate: 60 * 60 * 24,
     },
   });
 

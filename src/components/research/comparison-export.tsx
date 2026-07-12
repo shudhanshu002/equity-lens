@@ -2,7 +2,7 @@
 
 import { Copy, Download } from "lucide-react";
 import { ComparisonApiResponse } from "@/lib/api-client";
-import { formatNumber } from "@/lib/frontend/format";
+import { formatNumber, formatMarketCap } from "@/lib/frontend/format";
 
 type ComparisonExportProps = {
   comparison: NonNullable<ComparisonApiResponse["data"]>;
@@ -61,7 +61,7 @@ ${list(comparison.keyTradeoffs)}
 ${companies
   .map(
     (report) =>
-      `| ${report.company.name} | ${report.company.symbol} | ${report.decision} | ${report.score.total} | ${report.confidence} | ${formatNumber(report.company.marketCap)} |`
+      `| ${report.company.name} | ${report.company.symbol} | ${report.decision} | ${report.score.total} | ${report.confidence} | ${formatMarketCap(report.company.marketCap, report.company.currency)} |`
   )
   .join("\n")}
 

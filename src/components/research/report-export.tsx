@@ -2,7 +2,7 @@
 
 import { Copy, Download } from "lucide-react";
 import { InvestmentResearchReport } from "@/lib/types/research";
-import { formatNumber } from "@/lib/frontend/format";
+import { formatNumber, formatMarketCap } from "@/lib/frontend/format";
 
 type ReportExportProps = {
   report: InvestmentResearchReport;
@@ -24,7 +24,7 @@ function buildMarkdownReport(report: InvestmentResearchReport) {
 **Exchange:** ${report.company.exchange ?? "N/A"}  
 **Sector:** ${report.company.sector ?? "N/A"}  
 **Industry:** ${report.company.industry ?? "N/A"}  
-**Market Cap:** ${formatNumber(report.company.marketCap)}  
+**Market Cap:** ${formatMarketCap(report.company.marketCap, report.company.currency)}  
 
 ---
 

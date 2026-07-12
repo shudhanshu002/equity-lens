@@ -11,7 +11,12 @@ export type ComparisonApiResponse = {
   data?: {
     companies: InvestmentResearchReport[];
     comparison: {
-      winner: string;
+      provider?: "GEMINI" | "FALLBACK";
+      winner: {
+        symbol: string;
+        name: string;
+        reason: string;
+      } | null;
       summary: string;
       ranking: {
         symbol: string;
@@ -20,6 +25,10 @@ export type ComparisonApiResponse = {
         reason: string;
       }[];
       keyTradeoffs: string[];
+      keyDifferences?: string[];
+      bestFor?: string[];
+      risks?: string[];
+      dataCoverageNotes?: string[];
       winnerSymbol: string;
       winnerName: string;
       winnerScore: number;
@@ -38,6 +47,10 @@ export type ComparisonApiResponse = {
         hasMockNews: boolean;
         hasMockFinancials: boolean;
         hasFallbackMemo: boolean;
+        coverageModes?: string[];
+        limitedPublicEquityCompanies?: string[];
+        generalCompanies?: string[];
+        warnings?: string[];
       };
       generatedAt: string;
     };

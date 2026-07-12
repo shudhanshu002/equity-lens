@@ -5,17 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
     Archive,
-    BarChart3,
     CalendarDays,
-    Database,
     Download,
     FileJson,
     FileText,
     Loader2,
-    Lock,
     RefreshCcw,
-    Save,
-    Sparkles,
     Trash2,
 } from "lucide-react";
 import type { ComparisonApiResponse } from "@/lib/api-client";
@@ -33,6 +28,7 @@ import {
     type UserExportItem,
     type UserExportType,
 } from "@/lib/user-data/exports-client";
+import { getUserWatchlist, type UserWatchlistItem } from "@/lib/user-data/watchlist-client";
 
 type DatabaseExportsCenterProps = {
     report: InvestmentResearchReport | null;
@@ -145,7 +141,8 @@ export function DatabaseExportsCenter({
         setError("");
 
         try {
-            const payload = getPayloadForTarget(target, report, comparison ?? null);
+            const watchlist = target === "watchlist" && loggedIn ? await getUserWatchlist() : [];
+            const payload = getPayloadForTarget(target, report, comparison ?? null, watchlist);
 
             if (!payload) {
                 setError("No data available for this export yet.");
@@ -162,9 +159,10 @@ export function DatabaseExportsCenter({
                 report,
                 comparison: comparison ?? null,
                 payload,
+                watchlist,
             });
 
-            downloadTextFile({
+            downloadFile({
                 filename: createFileName(title, format),
                 content: content.body,
                 mimeType: content.mimeType,
@@ -232,61 +230,38 @@ export function DatabaseExportsCenter({
         }
     }
 
-    if (loading) {
-        return (
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-10 text-center shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950 text-white dark:bg-white dark:text-slate-950">
-                    <Loader2 className="h-7 w-7 animate-spin" />
-                </div>
-
-                <h2 className="text-3xl font-black text-slate-950 dark:text-white">
-                    Loading exports
-                </h2>
-
-                <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                    EquityLens is preparing your export history.
-                </p>
-            </section>
-        );
-    }
-
     return (
-        <div className="space-y-8">
-            <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-                <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-8">
-                    <div className="absolute right-[-12%] top-[-30%] h-80 w-80 rounded-full bg-orange-400/20 blur-3xl dark:bg-orange-400/10" />
-                    <div className="absolute bottom-[-34%] left-[18%] h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
+        <div className="space-y-5 pt-3">
+            <section className="grid gap-5 border-b border-slate-200 pb-5 dark:border-white/10 xl:grid-cols-[1fr_auto]">
+                <div>
 
-                    <div className="relative">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-4 py-2 text-sm font-bold text-orange-600 dark:text-orange-300">
+                    <div>
+                        <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-300">
                             <Archive className="h-4 w-4" />
-                            Export Center
+                            Exports
                         </div>
 
-                        <h2 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">
-                            Download research output and track export history.
+                        <h2 className="text-2xl font-semibold text-slate-950 dark:text-white">
+                            Export research data
                         </h2>
 
-                        <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300">
-                            Export latest research reports, comparison runs, or portfolio
-                            data as Markdown, JSON, CSV, or PDF-ready text. Logged-in users
-                            save export metadata to PostgreSQL.
+                        <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                            Download reports, comparisons, or watchlist data and track saved exports.
                         </p>
 
-                        <div className="mt-8 flex flex-wrap gap-3">
+                        <div className="mt-4 flex flex-wrap gap-2">
                             <button
                                 onClick={() => void refreshExports()}
                                 disabled={!loggedIn}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-xl shadow-slate-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950"
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-white/10 dark:text-slate-200"
                             >
-                                Refresh Exports
-                                <RefreshCcw className="h-4 w-4" />
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />} Refresh
                             </button>
 
                             <button
                                 onClick={() => void clearAllExports()}
                                 disabled={!loggedIn || exports.length === 0}
-                                className="inline-flex items-center gap-2 rounded-full border border-red-400/20 bg-red-400/10 px-6 py-3 text-sm font-black text-red-600 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-300"
+                                className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium text-red-600 disabled:opacity-40 dark:text-red-300"
                             >
                                 {working === "clear-all" ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -311,65 +286,21 @@ export function DatabaseExportsCenter({
                     </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
-                    <ExportMetric
-                        icon={<Database className="h-5 w-5" />}
-                        label="Saved Exports"
-                        value={String(exports.length)}
-                        helper={loggedIn ? "Database records" : "Login required"}
-                    />
-
-                    <ExportMetric
-                        icon={<FileText className="h-5 w-5" />}
-                        label="Research Ready"
-                        value={report ? "Yes" : "No"}
-                        helper="Latest report"
-                    />
-
-                    <ExportMetric
-                        icon={<BarChart3 className="h-5 w-5" />}
-                        label="Compare Ready"
-                        value={comparison ? "Yes" : "No"}
-                        helper="Latest comparison"
-                    />
-                </div>
             </section>
 
-            {!loggedIn && (
-                <section className="rounded-[2.5rem] border border-amber-400/20 bg-amber-400/10 p-6 md:p-8">
-                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <div className="mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-300">
-                                <Lock className="h-5 w-5" />
-                                <p className="font-black">Login to save export history</p>
-                            </div>
-
-                            <p className="max-w-3xl text-sm leading-7 text-slate-700 dark:text-slate-300">
-                                Downloads work locally without login, but export history is
-                                only saved to PostgreSQL for authenticated users.
-                            </p>
-                        </div>
-
-                        <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-amber-400/20 bg-white/50 px-5 py-3 text-sm font-black text-amber-700 dark:bg-white/10 dark:text-amber-300">
-                            <Save className="h-4 w-4" />
-                            Account sync available
-                        </div>
+            <section>
+                <div className="mb-3 flex items-end justify-between gap-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
+                            Create export
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Choose a dataset and download format.
+                        </p>
                     </div>
-                </section>
-            )}
-
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-8">
-                <div className="mb-6">
-                    <p className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-300">
-                        Create export
-                    </p>
-
-                    <h3 className="text-3xl font-black text-slate-950 dark:text-white">
-                        Export available research data.
-                    </h3>
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-3">
+                <div className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
                     {availableTargets.map((target) => (
                         <ExportTargetCard
                             key={target.id}
@@ -385,30 +316,28 @@ export function DatabaseExportsCenter({
                 </div>
             </section>
 
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20 md:p-8">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <section>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <p className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-300">
+                        <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
                             Saved exports
-                        </p>
-
-                        <h3 className="text-3xl font-black text-slate-950 dark:text-white">
-                            Export history
                         </h3>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Recent downloads saved to your account.</p>
                     </div>
 
                     <div
-                        className={`rounded-full border px-4 py-2 text-xs font-black ${loggedIn
+                        className={`inline-flex items-center gap-1.5 text-xs font-medium ${loggedIn
                                 ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-600 dark:text-emerald-300"
                                 : "border-amber-400/20 bg-amber-400/10 text-amber-700 dark:text-amber-300"
                             }`}
                     >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
                         {loggedIn ? "Database synced" : "Local downloads only"}
                     </div>
                 </div>
 
                 {exports.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
                         {exports.map((item) => (
                             <SavedExportCard
                                 key={item.id}
@@ -419,19 +348,9 @@ export function DatabaseExportsCenter({
                         ))}
                     </div>
                 ) : (
-                    <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center dark:border-white/10 dark:bg-slate-950/60">
-                        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-slate-400 shadow-sm dark:bg-white/10">
-                            <Download className="h-8 w-8" />
-                        </div>
-
-                        <h3 className="text-2xl font-black text-slate-950 dark:text-white">
-                            No saved exports yet
-                        </h3>
-
-                        <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-400">
-                            Generate an export after running research or comparison. Logged-in
-                            users will see saved export records here.
-                        </p>
+                    <div className="flex items-center gap-3 border-y border-slate-200 py-5 text-slate-500 dark:border-white/10 dark:text-slate-400">
+                        <Download className="h-4 w-4" />
+                        <p className="text-sm">No saved exports yet. New downloads will appear here.</p>
                     </div>
                 )}
             </section>
@@ -467,29 +386,16 @@ function ExportTargetCard({
         ];
 
     return (
-        <article
-            className={`rounded-[2rem] border p-5 ${disabled
-                    ? "border-slate-200 bg-slate-50 opacity-70 dark:border-white/10 dark:bg-slate-950/60"
-                    : "border-slate-200 bg-slate-50 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-xl hover:shadow-slate-900/5 dark:border-white/10 dark:bg-slate-950/60 dark:hover:bg-white/[0.06]"
-                }`}
-        >
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-600 shadow-sm dark:bg-white/10 dark:text-orange-300">
-                <Sparkles className="h-5 w-5" />
+        <article className={`grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center ${disabled ? "opacity-55" : ""}`}>
+            <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-slate-950 dark:text-white">{title}</h4>
+                    <span className="text-xs text-slate-400">{getExportTypeLabel(type)}</span>
+                </div>
+                <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{description}</p>
             </div>
 
-            <p className="mb-2 rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-600 dark:text-cyan-300">
-                {getExportTypeLabel(type)}
-            </p>
-
-            <h4 className="text-xl font-black text-slate-950 dark:text-white">
-                {title}
-            </h4>
-
-            <p className="mt-2 min-h-[52px] text-sm leading-7 text-slate-600 dark:text-slate-400">
-                {description}
-            </p>
-
-            <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-1.5">
                 {formats.map(({ format, icon }) => {
                     const id = `${target}-${format}`;
                     const isWorking = working === id;
@@ -499,7 +405,7 @@ function ExportTargetCard({
                             key={format}
                             onClick={() => void onExport(target, format)}
                             disabled={disabled || isWorking}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
                         >
                             {isWorking ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -525,87 +431,39 @@ function SavedExportCard({
     onDelete: () => void;
 }) {
     return (
-        <article className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-xl hover:shadow-slate-900/5 dark:border-white/10 dark:bg-slate-950/60 dark:hover:bg-white/[0.06] md:p-6">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-400/10 text-orange-600 dark:text-orange-300">
-                        <Download className="h-6 w-6" />
-                    </div>
-
-                    <div>
-                        <div className="mb-2 flex flex-wrap gap-2">
-                            <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-600 dark:text-cyan-300">
+        <article className="flex items-center justify-between gap-4 py-4">
+                <div className="min-w-0">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-medium text-cyan-600 dark:text-cyan-300">
                                 {getExportTypeLabel(item.type)}
                             </span>
-
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                            <span className="text-xs text-slate-400">
                                 {getExportFormatLabel(item.format)}
                             </span>
                         </div>
-
-                        <h4 className="text-xl font-black text-slate-950 dark:text-white">
+                        <h4 className="truncate text-sm font-semibold text-slate-950 dark:text-white">
                             {item.title}
                         </h4>
-
-                        {item.description && (
-                            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
-                                {item.description}
-                            </p>
-                        )}
-
-                        <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                        <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-400">
                             <CalendarDays className="h-3.5 w-3.5" />
                             {formatExportDate(item.createdAt)}
                         </p>
-                    </div>
                 </div>
 
                 <button
                     onClick={onDelete}
                     disabled={working}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/20 bg-red-400/10 px-5 py-3 text-sm font-black text-red-600 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-300"
+                    aria-label="Remove export"
+                    title="Remove export"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-60 dark:hover:bg-red-400/10 dark:hover:text-red-300"
                 >
                     {working ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                         <Trash2 className="h-4 w-4" />
                     )}
-                    Remove
                 </button>
-            </div>
         </article>
-    );
-}
-
-function ExportMetric({
-    icon,
-    label,
-    value,
-    helper,
-}: {
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-    helper: string;
-}) {
-    return (
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/20">
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-orange-600 dark:bg-white/10 dark:text-orange-300">
-                {icon}
-            </div>
-
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                {label}
-            </p>
-
-            <p className="mt-2 text-3xl font-black text-slate-950 dark:text-white">
-                {value}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {helper}
-            </p>
-        </div>
     );
 }
 
@@ -618,17 +476,13 @@ function getExportTypeForTarget(target: ExportTarget): UserExportType {
 function getPayloadForTarget(
     target: ExportTarget,
     report: InvestmentResearchReport | null,
-    comparison: NonNullable<ComparisonApiResponse["data"]> | null
+    comparison: NonNullable<ComparisonApiResponse["data"]> | null,
+    watchlist: UserWatchlistItem[]
 ) {
     if (target === "latest-research") return report;
     if (target === "latest-comparison") return comparison;
 
-    return {
-        type: "WATCHLIST",
-        message:
-            "Watchlist export metadata. Full watchlist database route can be connected next.",
-        exportedAt: new Date().toISOString(),
-    };
+    return { type: "WATCHLIST", items: watchlist, exportedAt: new Date().toISOString() };
 }
 
 function createTitleForTarget(
@@ -682,12 +536,14 @@ function createDownloadContent({
     report,
     comparison,
     payload,
+    watchlist,
 }: {
     target: ExportTarget;
     format: UserExportFormat;
     report: InvestmentResearchReport | null;
     comparison: NonNullable<ComparisonApiResponse["data"]> | null;
     payload: unknown;
+    watchlist: UserWatchlistItem[];
 }) {
     if (format === "JSON") {
         return {
@@ -698,20 +554,20 @@ function createDownloadContent({
 
     if (format === "CSV") {
         return {
-            body: createCsvContent(target, report, comparison),
+            body: createCsvContent(target, report, comparison, watchlist),
             mimeType: "text/csv",
         };
     }
 
     if (format === "PDF") {
         return {
-            body: createMarkdownContent(target, report, comparison, true),
-            mimeType: "text/plain",
+            body: createPdfContent(createMarkdownContent(target, report, comparison, watchlist, true)),
+            mimeType: "application/pdf",
         };
     }
 
     return {
-        body: createMarkdownContent(target, report, comparison, false),
+        body: createMarkdownContent(target, report, comparison, watchlist, false),
         mimeType: "text/markdown",
     };
 }
@@ -720,6 +576,7 @@ function createMarkdownContent(
     target: ExportTarget,
     report: InvestmentResearchReport | null,
     comparison: NonNullable<ComparisonApiResponse["data"]> | null,
+    watchlist: UserWatchlistItem[],
     pdfReady: boolean
 ) {
     const heading = pdfReady
@@ -783,9 +640,11 @@ Generated by EquityLens AI.
 
     return `${heading}
 
-## Watchlist Export
+## Portfolio Watchlist
 
-This is a watchlist export placeholder.
+${watchlist.length > 0
+        ? watchlist.map((item) => `- ${item.company} (${item.symbol ?? "N/A"}) | Score ${item.score}/100 | ${item.risk} risk | ${item.status}`).join("\n")
+        : "No companies are currently saved."}
 
 Generated by EquityLens AI.
 `;
@@ -794,7 +653,8 @@ Generated by EquityLens AI.
 function createCsvContent(
     target: ExportTarget,
     report: InvestmentResearchReport | null,
-    comparison: NonNullable<ComparisonApiResponse["data"]> | null
+    comparison: NonNullable<ComparisonApiResponse["data"]> | null,
+    watchlist: UserWatchlistItem[]
 ) {
     if (target === "latest-research" && report) {
         return [
@@ -813,7 +673,10 @@ function createCsvContent(
         ].join("\n");
     }
 
-    return ["type,message", "WATCHLIST,Watchlist export placeholder"].join("\n");
+    return [
+        "company,symbol,score,risk,status,thesis",
+        ...watchlist.map((item) => `${csv(item.company)},${csv(item.symbol ?? "")},${item.score},${csv(item.risk)},${csv(item.status)},${csv(item.thesis ?? "")}`),
+    ].join("\n");
 }
 
 function csv(value: string) {
@@ -822,7 +685,7 @@ function csv(value: string) {
 
 function createFileName(title: string, format: UserExportFormat) {
     const extensionMap: Record<UserExportFormat, string> = {
-        PDF: "txt",
+        PDF: "pdf",
         MARKDOWN: "md",
         JSON: "json",
         CSV: "csv",
@@ -836,16 +699,16 @@ function createFileName(title: string, format: UserExportFormat) {
     return `${safeTitle}.${extensionMap[format]}`;
 }
 
-function downloadTextFile({
+function downloadFile({
     filename,
     content,
     mimeType,
 }: {
     filename: string;
-    content: string;
+    content: string | Uint8Array;
     mimeType: string;
 }) {
-    const blob = new Blob([content], {
+    const blob = new Blob([content as BlobPart], {
         type: `${mimeType};charset=utf-8`,
     });
 
@@ -857,4 +720,58 @@ function downloadTextFile({
     anchor.click();
 
     URL.revokeObjectURL(url);
+}
+
+function createPdfContent(markdown: string) {
+    const lines = markdown
+        .replace(/^#+\s*/gm, "")
+        .replace(/\*\*/g, "")
+        .split("\n")
+        .flatMap((line) => wrapPdfLine(line, 88));
+    const pages: string[][] = [];
+    for (let index = 0; index < lines.length; index += 48) pages.push(lines.slice(index, index + 48));
+    if (pages.length === 0) pages.push(["EquityLens AI Export"]);
+
+    const objects: string[] = ["<< /Type /Catalog /Pages 2 0 R >>", ""];
+    const pageIds: number[] = [];
+    pages.forEach((page) => {
+        const pageId = objects.length + 1;
+        const contentId = pageId + 1;
+        pageIds.push(pageId);
+        const stream = `BT /F1 10 Tf 48 790 Td 14 TL ${page.map((line, index) => `${index ? "T* " : ""}(${escapePdfText(line)}) Tj`).join(" ")} ET`;
+        objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 ${pages.length * 2 + 3} 0 R >> >> /Contents ${contentId} 0 R >>`);
+        objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    });
+    objects[1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`;
+    objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+    let pdf = "%PDF-1.4\n";
+    const offsets = [0];
+    objects.forEach((object, index) => {
+        offsets.push(pdf.length);
+        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    });
+    const xref = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n `).join("\n")}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    return new TextEncoder().encode(pdf);
+}
+
+function wrapPdfLine(line: string, width: number) {
+    const clean = line.replace(/[^\x20-\x7E]/g, " ").trim();
+    if (!clean) return [""];
+    const words = clean.split(/\s+/);
+    const lines: string[] = [];
+    let current = "";
+    for (const word of words) {
+        if (`${current} ${word}`.trim().length > width && current) {
+            lines.push(current);
+            current = word;
+        } else current = `${current} ${word}`.trim();
+    }
+    if (current) lines.push(current);
+    return lines;
+}
+
+function escapePdfText(value: string) {
+    return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }

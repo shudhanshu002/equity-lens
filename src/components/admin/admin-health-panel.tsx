@@ -132,6 +132,26 @@ export function AdminHealthPanel() {
     }
 
     return (
+        <div>
+            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
+                <div className="flex items-center gap-3">
+                    <span className={`h-2 w-2 rounded-full ${getAdminHealthDotStyle(health.status)}`} />
+                    <div><h2 className="text-lg font-semibold text-slate-950 dark:text-white">System health</h2><p className="text-xs text-slate-400">{getAdminHealthStatusLabel(health.status)} · {health.responseTimeMs}ms · {formatAdminHealthDate(health.checkedAt)}</p></div>
+                </div>
+                <button onClick={() => void refreshHealth()} disabled={refreshing} aria-label="Refresh health" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 dark:border-white/10"><RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /></button>
+            </header>
+            <div className="grid grid-cols-3 border-b border-slate-200 dark:border-white/10">
+                {[["Healthy", summary.up], ["Warnings", summary.warn], ["Down", summary.down]].map(([label, value]) => <div key={label} className="border-r border-slate-200 px-4 py-3 first:pl-0 last:border-r-0 dark:border-white/10"><p className="text-xs text-slate-400">{label}</p><p className="mt-1 text-lg font-semibold text-slate-950 dark:text-white">{value}</p></div>)}
+            </div>
+            <div className="divide-y divide-slate-200 border-b border-slate-200 dark:divide-white/10 dark:border-white/10">
+                {health.checks.map((check) => <div key={check.name} className="grid gap-1 py-3 text-sm sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-5"><span className="font-medium text-slate-900 dark:text-white">{check.name}</span><span className="text-xs text-slate-400">{check.message}</span><span className={`text-xs font-semibold ${check.status === "UP" ? "text-emerald-600" : check.status === "WARN" ? "text-amber-600" : "text-red-600"}`}>{getAdminHealthStatusLabel(check.status)} · {check.responseTimeMs}ms</span></div>)}
+            </div>
+        </div>
+    );
+
+    /* Legacy health layout retained below while the compact view is active. */
+    const legacyHealth = health as AdminHealthData;
+    return ((health: AdminHealthData) => (
         <section className="relative overflow-hidden rounded-[2.75rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/30 md:p-8">
             <div className="absolute right-[-18%] top-[-42%] h-96 w-96 rounded-full bg-emerald-400/20 blur-3xl dark:bg-emerald-400/10" />
             <div className="absolute bottom-[-44%] left-[14%] h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/10" />
@@ -295,7 +315,7 @@ export function AdminHealthPanel() {
                 </div>
             </div>
         </section>
-    );
+    ))(legacyHealth);
 }
 
 function HealthCheckCard({ check }: { check: AdminHealthCheck }) {
