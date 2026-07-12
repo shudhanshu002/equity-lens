@@ -1,6 +1,6 @@
 import { ResearchState } from "@/lib/langgraph/state";
 import { fetchCompanyFinancials } from "@/lib/services/market-data";
-import { enrichCompanyWithQuote } from "@/lib/services/company-enrichment";
+import { enrichCompanyWithQuote } from "@/lib/services/quote-enrichment";
 
 type ResearchStateType = typeof ResearchState.State;
 

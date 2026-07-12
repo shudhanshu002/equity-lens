@@ -1,7 +1,7 @@
 import { fetchFinnhubCompanyNews } from "@/lib/services/finnhub-news";
-import { fetchGeneralCompanyResearch } from "@/lib/services/general-company-research";
+import { fetchGeneralCompanyResearch } from "@/lib/services/company-research";
 import type { CompanyProfile } from "@/lib/types/research";
-import type { FollowUpIntent } from "@/lib/follow-up/follow-up-intent";
+import type { FollowUpIntent } from "@/lib/follow-up/intent";
 
 export type FollowUpSource = {
   title: string;

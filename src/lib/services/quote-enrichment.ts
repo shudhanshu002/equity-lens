@@ -1,4 +1,4 @@
-import { fetchYahooQuoteSnapshot } from "@/lib/services/yahoo-quote";
+import { fetchYahooQuoteSnapshot } from "@/lib/services/yahoo-api";
 import type { CompanyProfile } from "@/lib/types/research";
 
 export async function enrichCompanyWithQuote(company: CompanyProfile) {

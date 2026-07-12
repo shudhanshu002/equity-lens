@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { runRobustComparison } from "@/lib/compare/run-comparison";
+import { runRobustComparison } from "@/lib/compare/runner";
 
 const compareRequestSchema = z.object({
   companies: z.preprocess(

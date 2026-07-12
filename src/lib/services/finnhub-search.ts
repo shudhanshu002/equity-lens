@@ -4,7 +4,7 @@ import {
   inferExchangeFromSymbol,
   normalizeTickerSymbol,
   type TickerCandidate,
-} from "@/lib/services/ticker-resolver-types";
+} from "@/lib/services/resolver-types";
 
 type FinnhubSearchItem = {
   description?: string;

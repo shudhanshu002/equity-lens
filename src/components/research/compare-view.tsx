@@ -16,7 +16,7 @@ import {
 import { ComparisonExport } from "@/components/research/comparison-export";
 import { ComparisonApiResponse } from "@/lib/api-client";
 import { formatNumber, formatMarketCap } from "@/lib/frontend/format";
-import { CompareFollowUpPanel } from "@/components/research/compare-follow-up-panel";
+import { CompareFollowUpPanel } from "@/components/research/compare-follow-up";
 
 type ComparisonData = NonNullable<ComparisonApiResponse["data"]>;
 

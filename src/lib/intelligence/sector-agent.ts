@@ -1,5 +1,5 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { fetchGeneralCompanyResearch } from "@/lib/services/general-company-research";
+import { fetchGeneralCompanyResearch } from "@/lib/services/company-research";
 
 export async function runSectorResearch(query: string) {
   const sources = await fetchGeneralCompanyResearch(

@@ -1,7 +1,7 @@
 import { CompanyProfile, NewsItem } from "@/lib/types/research";
 import { fetchFinnhubCompanyNews } from "@/lib/services/finnhub-news";
 import { fetchMockNews } from "@/lib/services/mock-market-data";
-import { filterRelevantCompanyNews } from "@/lib/services/news-relevance";
+import { filterRelevantCompanyNews } from "@/lib/services/news-filter";
 
 type NewsDataResult = {
   news: NewsItem[];

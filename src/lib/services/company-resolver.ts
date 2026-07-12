@@ -2,11 +2,11 @@ import type { CompanyProfile } from "@/lib/types/research";
 import type {
   TickerCandidate,
   TickerResolverProvider,
-} from "@/lib/services/ticker-resolver-types";
+} from "@/lib/services/resolver-types";
 import { searchCompanySymbol } from "@/lib/services/symbol-search";
-import { searchYahooCompanySymbol } from "@/lib/services/yahoo-symbol-search";
-import { searchFinnhubCompanySymbol } from "@/lib/services/finnhub-symbol-search";
-import { discoverPublicTicker } from "@/lib/services/public-ticker-discovery";
+import { searchYahooCompanySymbol } from "@/lib/services/yahoo-search";
+import { searchFinnhubCompanySymbol } from "@/lib/services/finnhub-search";
+import { discoverPublicTicker } from "@/lib/services/ticker-discovery";
 
 export type CompanyResolveResult = {
   company?: CompanyProfile;

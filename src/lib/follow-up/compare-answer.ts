@@ -1,6 +1,6 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import type { FollowUpIntent } from "@/lib/follow-up/follow-up-intent";
-import type { FollowUpSource } from "@/lib/follow-up/follow-up-research";
+import type { FollowUpIntent } from "@/lib/follow-up/intent";
+import type { FollowUpSource } from "@/lib/follow-up/research";
 import type { CompanyProfile } from "@/lib/types/research";
 
 type ResearchByCompany = {

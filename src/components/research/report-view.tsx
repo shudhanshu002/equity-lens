@@ -19,7 +19,7 @@ import {
 import { ReportExport } from "@/components/research/report-export";
 import { formatMetric, formatNumber, formatMarketCap } from "@/lib/frontend/format";
 import { InvestmentResearchReport } from "@/lib/types/research";
-import { DecisionActionPanel } from "@/components/research/decision-action-panel";
+import { DecisionActionPanel } from "@/components/research/decision-panel";
 
 type ReportViewProps = {
     report: InvestmentResearchReport;

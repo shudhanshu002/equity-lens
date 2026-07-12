@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveCompany } from "@/lib/services/company-resolver";
-import { classifyFollowUpIntent } from "@/lib/follow-up/follow-up-intent";
-import { fetchFollowUpResearch } from "@/lib/follow-up/follow-up-research";
-import { generateCompareFollowUpAnswer } from "@/lib/follow-up/compare-follow-up-answer";
+import { classifyFollowUpIntent } from "@/lib/follow-up/intent";
+import { fetchFollowUpResearch } from "@/lib/follow-up/research";
+import { generateCompareFollowUpAnswer } from "@/lib/follow-up/compare-answer";
 import type { CompanyProfile } from "@/lib/types/research";
 
 const companyProfileSchema = z

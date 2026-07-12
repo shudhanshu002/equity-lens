@@ -1,6 +1,6 @@
 import { ResearchState } from "@/lib/langgraph/state";
 import { fetchCompanyNews } from "@/lib/services/news-data";
-import { fetchGeneralCompanyResearch } from "@/lib/services/general-company-research";
+import { fetchGeneralCompanyResearch } from "@/lib/services/company-research";
 
 type ResearchStateType = typeof ResearchState.State;
 

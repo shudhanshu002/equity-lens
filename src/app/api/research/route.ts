@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runInvestmentResearch } from "@/lib/langgraph/graph";
-import { validateResearchInput } from "@/lib/services/research-input-validation";
+import { validateResearchInput } from "@/lib/services/input-validation";
 import { resolveCompany } from "@/lib/services/company-resolver";
-import { dedupeResearchMetadata } from "@/lib/utils/dedupe-research-metadata";
+import { dedupeResearchMetadata } from "@/lib/utils/metadata-cleanup";
 
 export async function POST(req: NextRequest) {
   try {

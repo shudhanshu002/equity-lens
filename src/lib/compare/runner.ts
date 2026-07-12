@@ -1,6 +1,6 @@
 import { runInvestmentResearch } from "@/lib/langgraph/graph";
 import { generateComparisonMemo } from "@/lib/services/comparison-memo";
-import { dedupeResearchMetadata } from "@/lib/utils/dedupe-research-metadata";
+import { dedupeResearchMetadata } from "@/lib/utils/metadata-cleanup";
 
 export async function runRobustComparison(companies: string[]) {
   const uniqueCompanies = Array.from(

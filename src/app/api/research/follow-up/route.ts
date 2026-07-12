@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveCompany } from "@/lib/services/company-resolver";
 import type { CompanyProfile } from "@/lib/types/research";
-import { classifyFollowUpIntent } from "@/lib/follow-up/follow-up-intent";
-import { fetchFollowUpResearch } from "@/lib/follow-up/follow-up-research";
-import { generateFollowUpAnswer } from "@/lib/follow-up/follow-up-answer";
+import { classifyFollowUpIntent } from "@/lib/follow-up/intent";
+import { fetchFollowUpResearch } from "@/lib/follow-up/research";
+import { generateFollowUpAnswer } from "@/lib/follow-up/answer";
 import { checkApiRateLimit, safeResearchError } from "@/lib/security/api-guard";
 
 const companyProfileSchema = z

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runInvestmentResearch } from "@/lib/langgraph/graph";
-import { dedupeResearchMetadata } from "@/lib/utils/dedupe-research-metadata";
-import { runRobustComparison } from "@/lib/compare/run-comparison";
-import { routeUniversalQuery } from "@/lib/intelligence/query-router";
-import { runSectorResearch } from "@/lib/intelligence/sector-research";
+import { dedupeResearchMetadata } from "@/lib/utils/metadata-cleanup";
+import { runRobustComparison } from "@/lib/compare/runner";
+import { routeUniversalQuery } from "@/lib/intelligence/router";
+import { runSectorResearch } from "@/lib/intelligence/sector-agent";
 import { resolveCompany } from "@/lib/services/company-resolver";
-import { classifyFollowUpIntent } from "@/lib/follow-up/follow-up-intent";
-import { fetchFollowUpResearch } from "@/lib/follow-up/follow-up-research";
-import { generateFollowUpAnswer } from "@/lib/follow-up/follow-up-answer";
-import { generateCompareFollowUpAnswer } from "@/lib/follow-up/compare-follow-up-answer";
+import { classifyFollowUpIntent } from "@/lib/follow-up/intent";
+import { fetchFollowUpResearch } from "@/lib/follow-up/research";
+import { generateFollowUpAnswer } from "@/lib/follow-up/answer";
+import { generateCompareFollowUpAnswer } from "@/lib/follow-up/compare-answer";
 import type { CompanyProfile } from "@/lib/types/research";
 import { checkApiRateLimit, safeResearchError } from "@/lib/security/api-guard";
 

@@ -2,7 +2,7 @@ import axios from "axios";
 import {
   calculateCompanyMatchScore,
   type TickerCandidate,
-} from "@/lib/services/ticker-resolver-types";
+} from "@/lib/services/resolver-types";
 
 type SerperOrganicResult = {
   title?: string;

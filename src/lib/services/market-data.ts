@@ -7,7 +7,7 @@ import {
   fetchMockFinancials,
   hasMockFinancials,
 } from "@/lib/services/mock-market-data";
-import { fetchSecFinancials } from "@/lib/services/sec-edgar";
+import { fetchSecFinancials } from "@/lib/services/sec-filings";
 
 type MarketDataResult = {
   companyPatch?: Partial<CompanyProfile>;

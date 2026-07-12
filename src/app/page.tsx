@@ -13,7 +13,7 @@ import { ReportView } from "@/components/research/report-view";
 import { CompareView } from "@/components/research/compare-view";
 import { RecentHistory } from "@/components/research/recent-history";
 import { ExportsCenter } from "@/components/research/exports-center";
-import { SectorResearchView } from "@/components/research/sector-research-view";
+import { SectorResearchView } from "@/components/research/sector-view";
 import { AppFooter } from "@/components/research/app-footer";
 import {
   BarChart3,
@@ -563,7 +563,7 @@ function ResearchWorkspace({
                         <SectorResearchView
                           query={turn.query}
                           result={turn.sectorResult}
-                          onSelectCompany={(selected) => {
+                          onSelectCompany={(selected: string) => {
                             onResearch(selected);
                           }}
                         />
